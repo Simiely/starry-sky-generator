@@ -372,7 +372,7 @@
             p.push('    var eMask = eLayer.mask("' + emitMask + '");');
             p.push('    if (eMask) {');
             p.push('        var ePath = eMask.maskPath;');
-            p.push('        if (ePath && ePath.vertices) ePts = ePath.vertices;');
+            p.push('        if (ePath) { ePts = ePath.points(); }');
             p.push('    }');
             p.push('}');
             p.push('var eL = 99999, eR = -99999, eT = 99999, eB = -99999;');
@@ -412,7 +412,7 @@
             p.push('    var tMask = tLayer.mask("' + targetMask + '");');
             p.push('    if (tMask) {');
             p.push('        var tPath = tMask.maskPath;');
-            p.push('        if (tPath && tPath.vertices) tPts = tPath.vertices;');
+            p.push('        if (tPath) { tPts = tPath.points(); }');
             p.push('    }');
             p.push('}');
             p.push('var tL = 99999, tR = -99999, tT = 99999, tB = -99999;');
@@ -441,8 +441,8 @@
         p.push('var driftX = Math.cos(angle) * speed * time;');
         p.push('var driftY = Math.sin(angle) * speed * time;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
-        p.push('var pullX = (tX - startX) * attraction * Math.min(1, time / attractDur);');
-        p.push('var pullY = (tY - startY) * attraction * Math.min(1, time / attractDur);');
+        p.push('var pullX = time < attractDur ? (tX - startX) * attraction : 0;');
+        p.push('var pullY = time < attractDur ? (tY - startY) * attraction : 0;');
         p.push('var rawX = startX + driftX + pullX;');
         p.push('var rawY = startY + driftY + pullY;');
         p.push('var wrapX = rawX % thisComp.width;');
