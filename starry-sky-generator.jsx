@@ -284,7 +284,7 @@
         nullLayer.name = controllerName;
         nullLayer.label = 9; // 绿色标签，方便在时间轴中识别
 
-        addSliderToLayer(nullLayer, "粒子数量", 200);
+        addSliderToLayer(nullLayer, "粒子数量", 50);
         addSliderToLayer(nullLayer, "最小尺寸", 3);
         addSliderToLayer(nullLayer, "最大尺寸", 15);
         addSliderToLayer(nullLayer, "色相(0-360)", 210);
@@ -777,9 +777,9 @@
         var r1 = paramGroup.add("group");
         r1.orientation = "row"; r1.alignment = ["fill", "center"];
         r1.add("statictext", undefined, "数量:").preferredSize = [50, 18];
-        var countSlider = r1.add("slider", undefined, 200, 10, 2000);
+        var countSlider = r1.add("slider", undefined, 50, 10, 2000);
         countSlider.preferredSize = [100, 20];
-        var countValue = r1.add("edittext", undefined, "200");
+        var countValue = r1.add("edittext", undefined, "50");
         countValue.preferredSize = [40, 20]; countValue.characters = 4;
         countSlider.onChanging = function() { countValue.text = Math.round(countSlider.value).toString(); };
         countValue.onChange = function() {
@@ -1203,9 +1203,7 @@
             updateControllerSlider(controller, "吸引力", params.attraction);
         }
 
-        function applyPresetToUI(preset) {
-            countSlider.value = preset["粒子数量"] || 200;
-            countValue.text = Math.round(countSlider.value).toString();
+            function applyPresetToUI(preset) {
             sizeMinInput.text = (preset["最小尺寸"] || 3).toString();
             sizeMaxInput.text = (preset["最大尺寸"] || 15).toString();
             var sv = preset["形状"];
@@ -1427,7 +1425,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, preset["粒子数量"], preset["形状"] || 0);
+            generateParticles(comp, controller, Math.round(countSlider.value), preset["形状"] || 0);
             setStatus(presetName + " 已应用");
         }
 
