@@ -1416,7 +1416,7 @@
         f1.orientation = "row"; f1.alignment = ["fill", "center"];
         var twinkleCheck = f1.add("checkbox", undefined, "闪烁效果");
         twinkleCheck.value = true;
-        f1.add("statictext", undefined, " 强度:").preferredSize = [40, 18];
+        f1.add("statictext", undefined, "闪烁幅度:").preferredSize = [60, 18];
         var twinkleStrSlider = f1.add("slider", undefined, 50, 0, 100);
         twinkleStrSlider.preferredSize = [50, 20];
         var twinkleStrValue = f1.add("statictext", undefined, "50%");
@@ -1480,8 +1480,6 @@
         var secBtnRow = btnPanel.add("group");
         secBtnRow.orientation = "row"; secBtnRow.alignment = ["fill", "top"];
         secBtnRow.alignChildren = ["fill", "center"]; secBtnRow.spacing = 4;
-        var clearBtn = secBtnRow.add("button", undefined, "清除粒子");
-        clearBtn.preferredSize = [-1, 26];
         var clearAllBtn = secBtnRow.add("button", undefined, "清除全部");
         clearAllBtn.preferredSize = [-1, 26];
 
@@ -1967,15 +1965,6 @@
         }
 
         generateBtn.onClick = function() { safeExecute("生成粒子", doGenerate); };
-
-        clearBtn.onClick = function() {
-            safeExecute("清除粒子", function() {
-                var comp = getActiveComp();
-                if (!comp) { alert("请先打开一个合成！"); return; }
-                clearParticles(comp);
-                setStatus("已清除");
-            });
-        };
 
         clearAllBtn.onClick = function() {
             safeExecute("清除全部", function() {
