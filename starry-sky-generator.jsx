@@ -1244,10 +1244,18 @@
         m5.add("statictext", undefined, "时长:").preferredSize = [40, 18];
         var attractDurSlider = m5.add("slider", undefined, 2, 0.5, 20);
         attractDurSlider.preferredSize = [60, 20];
-        var attractDurValue = m5.add("statictext", undefined, "2s");
-        attractDurValue.preferredSize = [25, 18];
+        var attractDurInput = m5.add("edittext", undefined, "2");
+        attractDurInput.preferredSize = [28, 20]; attractDurInput.characters = 4;
         attractDurSlider.onChanging = function() {
-            attractDurValue.text = Math.round(attractDurSlider.value * 10) / 10 + "s";
+            attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
+        };
+        attractDurInput.onChange = function() {
+            var v = parseFloat(attractDurInput.text);
+            if (!isNaN(v)) {
+                v = Math.max(0.5, Math.min(20, v));
+                attractDurSlider.value = v;
+                attractDurInput.text = Math.round(v * 10) / 10;
+            }
         };
 
         // ==============================
@@ -1434,7 +1442,7 @@
                 targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
                 targetLayer: (targetLayerDrop.selection && targetLayerDrop.selection.text.indexOf("(") !== 0) ? targetLayerDrop.selection.text : "",
                 targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
-                attractDur: attractDurSlider.value,
+                attractDur: parseFloat(attractDurInput.text) || 2,
                 attraction: Math.round(attractSlider.value)
             };
         }
@@ -1505,7 +1513,7 @@
             attractSlider.value = preset["吸引力"] || 0;
             attractValue.text = Math.round(attractSlider.value) + "%";
             attractDurSlider.value = preset["吸引时长"] || 2;
-            attractDurValue.text = Math.round(attractDurSlider.value * 10) / 10 + "s";
+            attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
             try { updateColorSwatch(); } catch (e) {}
         }
 
