@@ -348,6 +348,8 @@
         addSliderToLayer(nullLayer, "闪烁强度", 50);
         addSliderToLayer(nullLayer, "闪烁速度", 2);
         addSliderToLayer(nullLayer, "随机种子", 42);
+        // === 模糊控制 ===
+        addSliderToLayer(nullLayer, "模糊强度", 0);
         // === v2.0 发射区域 + 目标吸引 ===
         addSliderToLayer(nullLayer, "吸引力", 0);
         addSliderToLayer(nullLayer, "吸引时长", 2);
@@ -637,6 +639,17 @@
         ].join('\n');
     }
 
+    function buildBlurExpression() {
+        return [
+            'seedRandom(index, true);',
+            'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            'var blurStr = ctrl.effect("模糊强度") ? ctrl.effect("模糊强度")(1) : 0;',
+            'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
+            'seedRandom(index + seedVal + 10000, true);',
+            'random(0, blurStr);'
+        ].join('\n');
+    }
+
     // ==================== 粒子生成与清除 ====================
 
     function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, attractDur, wrapAround) {
@@ -663,6 +676,7 @@
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
+            var blurExpr = buildBlurExpression();
 
             for (var p = 1; p <= actualCount; p++) {
                 var particleName = "Star_Particle_" + padNumber(p, 4);
@@ -693,6 +707,18 @@
                                 fprop.setValue(1);
                             }
                         } catch (eName) {}
+                    }
+                }
+
+                // === 高斯模糊 ===
+                var blurFx = addPropertySafe(fx,
+                    ["ADBE Gaussian Blur", "ADBE Gaussian Blur-0001", "高斯模糊"]);
+                if (blurFx) {
+                    // 模糊度的属性通常是第1个滑块
+                    try {
+                        blurFx.property(1).expression = blurExpr;
+                    } catch (eBlur) {
+                        debugLog("    blur property(1) failed for particle " + p);
                     }
                 }
 
@@ -769,7 +795,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 80, "缩放最大变化%": 120,
-            "发射密度": 100, "发射随机偏移": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
         },
             "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -783,7 +809,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 50, "最终大小%": 100, "缩放最小变化%": 50, "缩放最大变化%": 150,
-            "发射密度": 100, "发射随机偏移": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
         },
             "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -797,7 +823,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 70, "缩放最大变化%": 130,
-            "发射密度": 100, "发射随机偏移": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
         },
             "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -811,7 +837,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 30, "最终大小%": 80, "缩放最小变化%": 60, "缩放最大变化%": 140,
-            "发射密度": 100, "发射随机偏移": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
         }
     };
 
@@ -882,7 +908,7 @@
         r1b.add("statictext", undefined, "尺寸:");
         var sizeMinInput = r1b.add("edittext", undefined, "3");
         sizeMinInput.preferredSize = [55, 20]; sizeMinInput.characters = 5;
-        r1b.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
+        r1b.add("statictext", undefined, " → ").preferredSize = [25, 18];
         var sizeMaxInput = r1b.add("edittext", undefined, "15");
         sizeMaxInput.preferredSize = [55, 20]; sizeMaxInput.characters = 5;
         r1b.add("statictext", undefined, " px (像素)").preferredSize = [75, 18];
@@ -892,7 +918,7 @@
         r1d.add("statictext", undefined, "缩放:");
         var sizeInitInput = r1d.add("edittext", undefined, "80");
         sizeInitInput.preferredSize = [55, 20]; sizeInitInput.characters = 5;
-        r1d.add("statictext", undefined, "% ~").preferredSize = [40, 18];
+        r1d.add("statictext", undefined, "% →").preferredSize = [40, 18];
         var sizeFinalInput = r1d.add("edittext", undefined, "100");
         sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
         r1d.add("statictext", undefined, " %").preferredSize = [25, 18];
@@ -903,7 +929,7 @@
         r1f.add("statictext", undefined, "随机缩放:");
         var svMinInput = r1f.add("edittext", undefined, "80");
         svMinInput.preferredSize = [55, 20]; svMinInput.characters = 5;
-        r1f.add("statictext", undefined, "% ~").preferredSize = [40, 18];
+        r1f.add("statictext", undefined, "% →").preferredSize = [40, 18];
         var svMaxInput = r1f.add("edittext", undefined, "120");
         svMaxInput.preferredSize = [55, 20]; svMaxInput.characters = 5;
         r1f.add("statictext", undefined, " %").preferredSize = [25, 18];
@@ -1176,7 +1202,7 @@
         m3.add("statictext", undefined, "速度:");
         var speedMinInput = m3.add("edittext", undefined, "30");
         speedMinInput.preferredSize = [55, 20]; speedMinInput.characters = 5;
-        m3.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
+        m3.add("statictext", undefined, " → ").preferredSize = [25, 18];
         var speedMaxInput = m3.add("edittext", undefined, "100");
         speedMaxInput.preferredSize = [55, 20]; speedMaxInput.characters = 5;
         m3.add("statictext", undefined, " px/s (像素/秒)").preferredSize = [105, 18];
@@ -1326,7 +1352,7 @@
         l1.add("statictext", undefined, "时长:");
         var lifeMinInput = l1.add("edittext", undefined, "2");
         lifeMinInput.preferredSize = [55, 20]; lifeMinInput.characters = 5;
-        l1.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
+        l1.add("statictext", undefined, " → ").preferredSize = [25, 18];
         var lifeMaxInput = l1.add("edittext", undefined, "6");
         lifeMaxInput.preferredSize = [55, 20]; lifeMaxInput.characters = 5;
         l1.add("statictext", undefined, " s (秒)").preferredSize = [50, 18];
@@ -1399,6 +1425,21 @@
         f3.orientation = "row"; f3.alignment = ["fill", "center"];
         var wrapCheck = f3.add("checkbox", undefined, "环绕 (Wrap) - 出屏幕边界后绕回对面");
         wrapCheck.value = true;
+
+        // 模糊强度
+        var fBlur = fxGroup.add("group");
+        fBlur.orientation = "row"; fBlur.alignment = ["fill", "center"];
+        fBlur.add("statictext", undefined, "模糊:");
+        var blurSlider = fBlur.add("slider", undefined, 0, 0, 50);
+        blurSlider.preferredSize = [60, 20];
+        var blurValue = fBlur.add("edittext", undefined, "0");
+        blurValue.preferredSize = [55, 20]; blurValue.characters = 5;
+        fBlur.add("statictext", undefined, "px").preferredSize = [20, 18];
+        blurSlider.onChanging = function() { blurValue.text = Math.round(blurSlider.value).toString(); };
+        blurValue.onChange = function() {
+            var v = parseInt(blurValue.text);
+            if (!isNaN(v)) blurSlider.value = Math.max(0, Math.min(50, v));
+        };
 
         var f4 = fxGroup.add("group");
         f4.orientation = "row"; f4.alignment = ["fill", "center"];
@@ -1592,6 +1633,7 @@
                 if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction) + "%"; }
                 if (p.wrapAround !== undefined) wrapCheck.value = p.wrapAround;
                 if (p.emitOff !== undefined) { emitOffSlider.value = p.emitOff; emitOffValue.text = Math.round(p.emitOff * 10) / 10 + "s"; }
+                if (p.blur !== undefined) { blurSlider.value = p.blur; blurValue.text = Math.round(p.blur).toString(); }
                 try { updateColorSwatch(); } catch (e) {}
                 setStatus("已加载槽位 " + (idx + 1));
             } catch (e) {
@@ -1640,6 +1682,7 @@
                 twinkleEnabled: twinkleCheck.value,
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
+                blur: Math.round(blurSlider.value),
                 seed: Math.round(seedSlider.value),
                 // v2.0 发射模式 + 目标选取
                 emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
@@ -1684,6 +1727,7 @@
             updateControllerSlider(controller, "缩放最小变化(%)", params.sizeVarMin);
             updateControllerSlider(controller, "缩放最大变化(%)", params.sizeVarMax);
             updateControllerSlider(controller, "发射随机偏移", params.emitOff);
+            updateControllerSlider(controller, "模糊强度", params.blur);
         }
 
             function applyPresetToUI(preset) {
@@ -1715,6 +1759,8 @@
             fadeOutInput.text = (preset["淡出时长(秒)"] || 0.8).toString();
             twinkleStrSlider.value = preset["闪烁强度"] || 50;
             twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString();
+            blurSlider.value = preset["模糊强度"] || 0;
+            blurValue.text = Math.round(blurSlider.value).toString();
             twinkleCheck.value = (preset["闪烁强度"] || 0) > 0;
             twinkleSpdSlider.value = preset["闪烁速度"] || 2;
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
