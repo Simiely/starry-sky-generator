@@ -411,20 +411,20 @@
         if (emitMode === 1 && emitLayer && emitMask) {
             p.push('var eLayer = thisComp.layer("' + emitLayer + '");');
             p.push('var ePts = [];');
-            p.push('if (eLayer) {');
+            p.push('if (eLayer) \x7B');
             p.push('    var eMask = eLayer.mask("' + emitMask + '");');
-            p.push('    if (eMask) {');
+            p.push('    if (eMask) \x7B');
             p.push('        var ePath = eMask.maskPath;');
-            p.push('        if (ePath) { ePts = ePath.points(); }');
-            p.push('    }');
-            p.push('}');
+            p.push('        if (ePath) \x7B ePts = ePath.points(); \x7D');
+            p.push('    \x7D');
+            p.push('\x7D');
             p.push('var eL = 99999, eR = -99999, eT = 99999, eB = -99999;');
-            p.push('for (var vi = 0; vi < ePts.length; vi++) {');
+            p.push('for (var vi = 0; vi < ePts.length; vi++) \x7B');
             p.push('    var vx = ePts[vi][0], vy = ePts[vi][1];');
             p.push('    if (vx < eL) eL = vx; if (vx > eR) eR = vx;');
             p.push('    if (vy < eT) eT = vy; if (vy > eB) eB = vy;');
-            p.push('}');
-            p.push('if (ePts.length === 0) { eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; }');
+            p.push('\x7D');
+            p.push('if (ePts.length === 0) \x7B eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; \x7D');
             p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
             p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
@@ -434,24 +434,24 @@
             // 点阵内发射：在边界框内随机取点，判断是否在多边形内部（无 function 关键字，内联实现）
             // 最多尝试 10 次，避免表达式超时
             p.push('var foundPt = false;');
-            p.push('for (var att = 0; att < 10; att++) {');
+            p.push('for (var att = 0; att < 10; att++) \x7B');
             p.push('    var tryX = random(eL, eR);');
             p.push('    var tryY = random(eT, eB);');
             p.push('    var inside = false;');
-            p.push('    for (var i = 0, j = ePts.length - 1; i < ePts.length; j = i++) {');
+            p.push('    for (var i = 0, j = ePts.length - 1; i < ePts.length; j = i++) \x7B');
             p.push('        var xi = ePts[i][0], yi = ePts[i][1];');
             p.push('        var xj = ePts[j][0], yj = ePts[j][1];');
             p.push('        if ((yi > tryY) != (yj > tryY) && tryX < (xj - xi) * (tryY - yi) / (yj - yi) + xi) inside = !inside;');
-            p.push('    }');
-            p.push('    if (inside) {');
+            p.push('    \x7D');
+            p.push('    if (inside) \x7B');
             p.push('        var rPt = eLayer.toComp([tryX, tryY]);');
             p.push('        var startX = rPt[0]; var startY = rPt[1]; foundPt = true; break;');
-            p.push('    }');
-            p.push('}');
-            p.push('if (!foundPt) {');
+            p.push('    \x7D');
+            p.push('\x7D');
+            p.push('if (!foundPt) \x7B');
             p.push('    var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
             p.push('    var startX = rPt[0]; var startY = rPt[1];');
-            p.push('}');
+            p.push('\x7D');
         } else {
             p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
             p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
@@ -480,20 +480,20 @@
             p.push('');
             p.push('var tLayer = thisComp.layer("' + targetLayer + '");');
             p.push('var tPts = [];');
-            p.push('if (tLayer) {');
+            p.push('if (tLayer) \x7B');
             p.push('    var tMask = tLayer.mask("' + targetMask + '");');
-            p.push('    if (tMask) {');
+            p.push('    if (tMask) \x7B');
             p.push('        var tPath = tMask.maskPath;');
-            p.push('        if (tPath) { tPts = tPath.points(); }');
-            p.push('    }');
-            p.push('}');
+            p.push('        if (tPath) \x7B tPts = tPath.points(); \x7D');
+            p.push('    \x7D');
+            p.push('\x7D');
             p.push('var tL = 99999, tR = -99999, tT = 99999, tB = -99999;');
-            p.push('for (var tvi = 0; tvi < tPts.length; tvi++) {');
+            p.push('for (var tvi = 0; tvi < tPts.length; tvi++) \x7B');
             p.push('    var tvx = tPts[tvi][0], tvy = tPts[tvi][1];');
             p.push('    if (tvx < tL) tL = tvx; if (tvx > tR) tR = tvx;');
             p.push('    if (tvy < tT) tT = tvy; if (tvy > tB) tB = tvy;');
-            p.push('}');
-            p.push('if (tPts.length === 0) { tL = 0; tR = 100; tT = 0; tB = 100; }');
+            p.push('\x7D');
+            p.push('if (tPts.length === 0) \x7B tL = 0; tR = 100; tT = 0; tB = 100; \x7D');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
             p.push('var tPt = tPts.length > 0 ? tLayer.toComp([random(tL, tR), random(tT, tB)]) : [random(tL, tR), random(tT, tB)];');
             p.push('var tX = tPt[0];');
@@ -521,14 +521,14 @@
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
         p.push('var vx = Math.cos(angle) * speed;');
         p.push('var vy = Math.sin(angle) * speed;');
-        p.push('if (tLocal < attractDur && attraction > 0) {');
+        p.push('if (tLocal < attractDur && attraction > 0) \x7B');
         p.push('    var curX = startX + driftX;');
         p.push('    var curY = startY + driftY;');
         p.push('    var toX = tX - curX;');
         p.push('    var toY = tY - curY;');
         p.push('    var toD = Math.sqrt(toX*toX + toY*toY);');
-        p.push('    if (toD > 1) { vx += (toX / toD) * (attraction / 100) * speed; vy += (toY / toD) * (attraction / 100) * speed; }');
-        p.push('}');
+        p.push('    if (toD > 1) \x7B vx += (toX / toD) * (attraction / 100) * speed; vy += (toY / toD) * (attraction / 100) * speed; \x7D');
+        p.push('\x7D');
         p.push('var rawX = startX + vx * tLocal;');
         p.push('var rawY = startY + vy * tLocal;');
         if (wrapAround) {
@@ -564,16 +564,16 @@
             'var cycleTime = (time + offTime) % lifeDuration;',
             '',
             'var baseOpacity = 100;',
-            'if (cycleTime < fadeIn) {',
+            'if (cycleTime < fadeIn) \x7B',
             '    baseOpacity = linear(cycleTime, 0, fadeIn, 0, 100);',
-            '} else if (cycleTime > lifeDuration - fadeOut) {',
+            '\x7D else if (cycleTime > lifeDuration - fadeOut) \x7B',
             '    baseOpacity = linear(cycleTime, lifeDuration - fadeOut, lifeDuration, 100, 0);',
-            '}',
+            '\x7D',
             '',
             'var twinkle = 0;',
-            'if (twinkleStrength > 0) {',
+            'if (twinkleStrength > 0) \x7B',
             '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength * 2;',
-            '}',
+            '\x7D',
             'Math.max(0, Math.min(100, baseOpacity + twinkle));'
         ].join('\n');
     }
@@ -619,12 +619,12 @@
             'var x = c * (1 - Math.abs(((h / 60) % 2) - 1));',
             'var m = l - c / 2;',
             'var r, g, b;',
-            'if (h < 60) { r = c; g = x; b = 0; }',
-            'else if (h < 120) { r = x; g = c; b = 0; }',
-            'else if (h < 180) { r = 0; g = c; b = x; }',
-            'else if (h < 240) { r = 0; g = x; b = c; }',
-            'else if (h < 300) { r = x; g = 0; b = c; }',
-            'else { r = c; g = 0; b = x; }',
+            'if (h < 60) \x7B r = c; g = x; b = 0; \x7D',
+            'else if (h < 120) \x7B r = x; g = c; b = 0; \x7D',
+            'else if (h < 180) \x7B r = 0; g = c; b = x; \x7D',
+            'else if (h < 240) \x7B r = 0; g = x; b = c; \x7D',
+            'else if (h < 300) \x7B r = x; g = 0; b = c; \x7D',
+            'else \x7B r = c; g = 0; b = x; \x7D',
             '[r + m, g + m, b + m, 1];'
         ].join('\n');
     }
