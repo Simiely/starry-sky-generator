@@ -382,11 +382,22 @@
             p.push('    if (vy < eT) eT = vy; if (vy > eB) eB = vy;');
             p.push('}');
             p.push('if (ePts.length === 0) { eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; }');
+            p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
+            p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
+            p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
+            p.push('var eCycle = Math.floor(time / eLifeDur);');
+            p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
             p.push('var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
             p.push('var startX = rPt[0];');
             p.push('var startY = rPt[1];');
         } else {
+            p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
+            p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
+            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
+            p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
+            p.push('var eCycle = Math.floor(time / eLifeDur);');
+            p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
             p.push('var startX = random(0, thisComp.width);');
             p.push('var startY = random(0, thisComp.height);');
         }
