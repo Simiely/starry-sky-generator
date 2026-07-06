@@ -1424,10 +1424,14 @@
         f1.add("statictext", undefined, " 速度:").preferredSize = [40, 18];
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
         twinkleSpdSlider.preferredSize = [50, 20];
-        var twinkleSpdValue = f1.add("statictext", undefined, "2");
-        twinkleSpdValue.preferredSize = [20, 18];
+        var twinkleSpdValue = f1.add("edittext", undefined, "2");
+        twinkleSpdValue.preferredSize = [35, 20]; twinkleSpdValue.characters = 4;
         twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%"; };
         twinkleSpdSlider.onChanging = function() { twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10; };
+        twinkleSpdValue.onChange = function() {
+            var v = parseFloat(twinkleSpdValue.text);
+            if (!isNaN(v)) { twinkleSpdSlider.value = Math.max(0.1, Math.min(10, v)); }
+        };
 
         var f2 = fxGroup.add("group");
         f2.orientation = "row"; f2.alignment = ["fill", "center"];
