@@ -318,6 +318,8 @@
         addSliderToLayer(nullLayer, "粒子数量", 50);
         addSliderToLayer(nullLayer, "最小尺寸", 3);
         addSliderToLayer(nullLayer, "最大尺寸", 15);
+        addSliderToLayer(nullLayer, "初始大小(%)", 80);
+        addSliderToLayer(nullLayer, "最终大小(%)", 100);
         addSliderToLayer(nullLayer, "色相(0-360)", 210);
         addSliderToLayer(nullLayer, "色相随机范围", 30);
         addSliderToLayer(nullLayer, "饱和度", 80);
@@ -564,10 +566,17 @@
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
             'var sizeMin = ctrl.effect("最小尺寸") ? ctrl.effect("最小尺寸")(1) : 3;',
             'var sizeMax = ctrl.effect("最大尺寸") ? ctrl.effect("最大尺寸")(1) : 15;',
+            'var initPct = ctrl.effect("初始大小(%)") ? ctrl.effect("初始大小(%)")(1) : 80;',
+            'var finlPct = ctrl.effect("最终大小(%)") ? ctrl.effect("最终大小(%)")(1) : 100;',
+            'var lifeMin = ctrl.effect("最小生命周期(秒)") ? ctrl.effect("最小生命周期(秒)")(1) : 2;',
+            'var lifeMax = ctrl.effect("最大生命周期(秒)") ? ctrl.effect("最大生命周期(秒)")(1) : 6;',
             'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             'seedRandom(index + seedVal + 2000, true);',
             'var s = random(sizeMin, sizeMax);',
-            '[s, s];'
+            'var dur = random(lifeMin, lifeMax);',
+            'var tLocal = time % dur;',
+            'var pct = initPct / 100 + (finlPct - initPct) / 100 * (tLocal / dur);',
+            '[s * pct, s * pct];'
         ].join('\n');
     }
 
@@ -810,6 +819,7 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
+            "初始大小%": 80, "最终大小%": 100,
             "发射密度": 100
         },
         "彩色星云": {
@@ -823,6 +833,7 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
+            "初始大小%": 50, "最终大小%": 100,
             "发射密度": 100
         },
         "极光飘动": {
@@ -836,6 +847,7 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
+            "初始大小%": 80, "最终大小%": 100,
             "发射密度": 100
         },
         "金色粒子雨": {
@@ -849,6 +861,7 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
+            "初始大小%": 30, "最终大小%": 80,
             "发射密度": 100
         }
     };
@@ -924,6 +937,16 @@
         var sizeMaxInput = r1b.add("edittext", undefined, "15");
         sizeMaxInput.preferredSize = [55, 20]; sizeMaxInput.characters = 5;
         r1b.add("statictext", undefined, " px").preferredSize = [25, 18];
+
+        var r1d = paramGroup.add("group");
+        r1d.orientation = "row"; r1d.alignment = ["fill", "center"];
+        r1d.add("statictext", undefined, "缩放:").preferredSize = [50, 18];
+        var sizeInitInput = r1d.add("edittext", undefined, "80");
+        sizeInitInput.preferredSize = [55, 20]; sizeInitInput.characters = 5;
+        r1d.add("statictext", undefined, "% ~").preferredSize = [28, 18];
+        var sizeFinalInput = r1d.add("edittext", undefined, "100");
+        sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
+        r1d.add("statictext", undefined, " %").preferredSize = [20, 18];
 
         var r1c = paramGroup.add("group");
         r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
@@ -1556,6 +1579,8 @@
                 if (p.count !== undefined)      { countSlider.value = p.count; countValue.text = Math.round(p.count).toString(); }
                 if (p.sizeMin !== undefined)    sizeMinInput.text = p.sizeMin.toString();
                 if (p.sizeMax !== undefined)    sizeMaxInput.text = p.sizeMax.toString();
+                if (p.sizeInit !== undefined)   sizeInitInput.text = p.sizeInit.toString();
+                if (p.sizeFinal !== undefined)  sizeFinalInput.text = p.sizeFinal.toString();
                 if (p.shape !== undefined)      shapeDropdown.selection = p.shape;
                 if (p.hue !== undefined)        { hueSlider.value = p.hue; hueValue.text = Math.round(p.hue).toString(); }
                 if (p.hueVar !== undefined)     { hueVarSlider.value = p.hueVar; hueVarValue.text = Math.round(p.hueVar).toString(); }
@@ -1626,6 +1651,8 @@
                 count: Math.round(countSlider.value),
                 sizeMin: parseFloat(sizeMinInput.text) || 3,
                 sizeMax: parseFloat(sizeMaxInput.text) || 15,
+                sizeInit: parseFloat(sizeInitInput.text) || 80,
+                sizeFinal: parseFloat(sizeFinalInput.text) || 100,
                 shape: shapeDropdown.selection ? shapeDropdown.selection.index : 0,
                 hue: Math.round(hueSlider.value),
                 hueVar: Math.round(hueVarSlider.value),
@@ -1680,11 +1707,15 @@
             updateControllerSlider(controller, "吸引力", params.attraction);
             updateControllerSlider(controller, "吸引时长", params.attractDur);
             updateControllerSlider(controller, "发射密度", params.emitDen);
+            updateControllerSlider(controller, "初始大小(%)", params.sizeInit);
+            updateControllerSlider(controller, "最终大小(%)", params.sizeFinal);
         }
 
             function applyPresetToUI(preset) {
             sizeMinInput.text = (preset["最小尺寸"] || 3).toString();
             sizeMaxInput.text = (preset["最大尺寸"] || 15).toString();
+            sizeInitInput.text = (preset["初始大小%"] || 80).toString();
+            sizeFinalInput.text = (preset["最终大小%"] || 100).toString();
             var sv = preset["形状"];
             if (sv !== undefined) shapeDropdown.selection = sv;
             hueSlider.value = preset["色相(0-360)"] || 210;
