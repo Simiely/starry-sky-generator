@@ -1,0 +1,1422 @@
+/* ============================================================
+   星空粒子生成器  v1.7
+   Starry Sky Particle Generator for Adobe After Effects 2026
+
+   基于 v1.4 Solid 方案，新增形状选择
+   - 正方形: Solid 层（v1.4 原始方案）
+   - 圆形: Solid + 椭圆 Mask
+
+   安装：放入 AE 2026 的 ScriptUI Panels 目录
+   路径：C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\Scripts\ScriptUI Panels
+   使用：窗口 > 星空粒子生成器
+   ============================================================ */
+
+{
+    // ==================== JSON Polyfill（ExtendScript 无内置 JSON） ====================
+    // 参考: AE-Lyrics-Animator DEVELOPMENT.md
+    if (typeof JSON === "undefined") { JSON = {}; }
+    if (typeof JSON.stringify !== "function") {
+        JSON.stringify = function(obj) {
+            var t = typeof obj;
+            if (t === "string") return '"' + obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+            if (t === "number" || t === "boolean") return String(obj);
+            if (obj === null) return "null";
+            if (obj instanceof Array) {
+                var a = [];
+                for (var i = 0; i < obj.length; i++) a.push(JSON.stringify(obj[i]));
+                return "[" + a.join(",") + "]";
+            }
+            if (t === "object") {
+                var keys = [];
+                for (var k in obj) { if (obj.hasOwnProperty(k)) keys.push(k); }
+                var pairs = [];
+                for (var j = 0; j < keys.length; j++) {
+                    pairs.push(JSON.stringify(keys[j]) + ":" + JSON.stringify(obj[keys[j]]));
+                }
+                return "{" + pairs.join(",") + "}";
+            }
+            return "null";
+        };
+    }
+    if (typeof JSON.parse !== "function") {
+        JSON.parse = function(text) { return eval("(" + text + ")"); };
+    }
+
+    // ==================== 属性安全工具（参考 AE-Lyrics-Animator 的 Fallback 模式） ====================
+
+    /**
+     * 安全添加属性，支持多候选名 fallback
+     * @param {PropertyGroup} parent - 父属性组
+     * @param {Array} candidates - 候选 matchName 列表
+     * @return {Property|null}
+     */
+    function addPropertySafe(parent, candidates) {
+        for (var c = 0; c < candidates.length; c++) {
+            try {
+                var prop = parent.addProperty(candidates[c]);
+                if (prop) return prop;
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    /**
+     * 安全获取子属性，支持多候选名 fallback
+     */
+    function getPropertySafe(parent, candidates) {
+        for (var c = 0; c < candidates.length; c++) {
+            try {
+                var prop = parent.property(candidates[c]);
+                if (prop) return prop;
+            } catch (e) {}
+        }
+        return null;
+    }
+
+    // ==================== 全局错误处理 & 调试工具 ====================
+
+    var DEBUG = true;
+    var g_errorLog = [];
+
+    function debugLog(msg) {
+        if (!DEBUG) return;
+        var ts = new Date().toLocaleTimeString();
+        var entry = "[" + ts + "] " + msg;
+        g_errorLog.push(entry);
+        $.writeln(entry);
+    }
+
+    function showErrorReport(title, message, errObj, line) {
+        var report = [];
+        report.push("==============================");
+        report.push("  星空粒子生成器 错误报告");
+        report.push("==============================");
+        report.push("");
+        report.push("错误: " + title);
+        report.push("信息: " + message);
+        if (line) report.push("行号: " + line);
+        report.push("");
+        report.push("--- 错误详情 ---");
+        if (errObj) {
+            report.push(errObj.toString());
+            if (errObj.line) report.push("出错行: " + errObj.line);
+            if (errObj.fileName) report.push("文件: " + errObj.fileName);
+        }
+        report.push("");
+        report.push("--- AE 环境 ---");
+        report.push("AE 版本: " + app.version);
+        report.push("项目文件: " + (app.project.file ? app.project.file.fsName : "(未保存)"));
+        try {
+            var tmpComp = app.project.activeItem;
+            if (tmpComp && tmpComp instanceof CompItem) {
+                report.push("活动合成: " + tmpComp.name +
+                    " (" + tmpComp.width + "x" + tmpComp.height + ", " +
+                    tmpComp.frameRate + "fps, " + tmpComp.duration + "s)");
+                report.push("图层数: " + tmpComp.numLayers);
+            } else {
+                report.push("活动合成: 无");
+            }
+        } catch (e) {
+            report.push("活动合成: (获取失败)");
+        }
+        report.push("");
+        report.push("--- 调试日志 (最近 20 条) ---");
+        for (var li = Math.max(0, g_errorLog.length - 20); li < g_errorLog.length; li++) {
+            report.push(g_errorLog[li]);
+        }
+        report.push("");
+        report.push("==============================");
+        report.push("请复制以上内容用于调试");
+        report.push("==============================");
+
+        var reportStr = report.join("\n");
+        $.writeln(reportStr);
+
+        var dlg = new Window("dialog", "错误报告 - 星空粒子生成器");
+        dlg.orientation = "column";
+        dlg.alignChildren = ["fill", "top"];
+        dlg.spacing = 8;
+        dlg.margins = [12, 12, 12, 12];
+        dlg.add("statictext", undefined, title).preferredSize = [420, 20];
+
+        var detailScroll = dlg.add("edittext", undefined, reportStr,
+            { multiline: true, readonly: true, scrolling: true });
+        detailScroll.preferredSize = [420, 300];
+
+        var btnGroup = dlg.add("group");
+        btnGroup.orientation = "row";
+        btnGroup.alignment = ["center", "bottom"];
+        btnGroup.spacing = 10;
+
+        var copyBtn = btnGroup.add("button", undefined, "复制错误信息到剪贴板");
+        copyBtn.preferredSize = [180, 28];
+        var closeBtn = btnGroup.add("button", undefined, "关闭");
+        closeBtn.preferredSize = [80, 28];
+
+        copyBtn.onClick = function() {
+            try {
+                var clipFile = new File(Folder.temp.fsName + "/ae_starry_error.txt");
+                clipFile.encoding = "UTF-8";
+                clipFile.open("w");
+                clipFile.write(reportStr);
+                clipFile.close();
+                system.callSystem('cmd.exe /c clip < "' +
+                    Folder.temp.fsName.replace(/\\/g, "\\\\") + '\\\\ae_starry_error.txt"');
+                alert("错误信息已复制到剪贴板！");
+                clipFile.remove();
+            } catch (e2) {
+                try {
+                    var deskFile = new File(Folder.desktop.fsName + "/AE_星空粒子_错误报告.txt");
+                    deskFile.encoding = "UTF-8";
+                    deskFile.open("w");
+                    deskFile.write(reportStr);
+                    deskFile.close();
+                    alert("已保存到桌面: AE_星空粒子_错误报告.txt");
+                } catch (e3) {
+                    alert("自动复制失败，请手动选中文本复制。");
+                }
+            }
+        };
+        closeBtn.onClick = function() { dlg.close(); };
+        dlg.show();
+    }
+
+    function safeExecute(actionName, fn) {
+        try { return fn(); } catch (e) {
+            debugLog("ERROR in " + actionName + ": " + e.toString());
+            showErrorReport("操作失败: " + actionName, e.toString(), e, e.line);
+            return null;
+        }
+    }
+
+    // ==================== 形状工具 ====================
+
+    /**
+     * 在 Solid 上创建圆形 mask
+     * @param {AVLayer} solid - 100x100 的 solid 层
+     */
+    function addCircleMask(solid) {
+        try {
+            var maskGroup = solid.property("ADBE Mask Parade");
+            if (!maskGroup) {
+                debugLog("  addCircleMask: no Mask Parade");
+                return false;
+            }
+            var mask = addPropertySafe(maskGroup,
+                ["ADBE Mask Atom", "ADBE Mask Atom-0001", "Mask"]);
+            if (!mask) {
+                debugLog("  addCircleMask: could not add mask atom");
+                return false;
+            }
+            mask.name = "Circle";
+
+            var k = 0.552284749831 * 50;
+            var maskShape = new Shape();
+            maskShape.vertices = [[50, 0], [100, 50], [50, 100], [0, 50]];
+            maskShape.inTangents = [[-k, 0], [0, -k], [k, 0], [0, k]];
+            maskShape.outTangents = [[k, 0], [0, k], [-k, 0], [0, -k]];
+            maskShape.closed = true;
+
+            var shapeProp = getPropertySafe(mask,
+                ["ADBE Mask Shape", "Mask Shape", "蒙版路径"]);
+            if (!shapeProp) {
+                debugLog("  addCircleMask: no mask shape property");
+                return false;
+            }
+            shapeProp.setValue(maskShape);
+            return true;
+        } catch (e) {
+            debugLog("  addCircleMask failed: " + e.toString());
+            return false;
+        }
+    }
+
+    // ==================== 核心函数 ====================
+
+    function getActiveComp() {
+        try {
+            var item = app.project.activeItem;
+            if (item && item instanceof CompItem) return item;
+            return null;
+        } catch (e) { return null; }
+    }
+
+    function ensureComp() {
+        var comp = getActiveComp();
+        if (comp) return comp;
+        debugLog("ensureComp: auto-creating comp...");
+        var compName = "星空粒子";
+        var baseName = compName;
+        var idx = 1;
+        while (true) {
+            var exists = false;
+            for (var ci = 1; ci <= app.project.items.length; ci++) {
+                if (app.project.items[ci] instanceof CompItem &&
+                    app.project.items[ci].name === compName) {
+                    exists = true;
+                    break;
+                }
+            }
+            if (!exists) break;
+            idx++;
+            compName = baseName + " " + idx;
+        }
+        comp = app.project.items.addComp(compName, 1920, 1080, 1, 8, 30);
+        comp.openInViewer();
+        var bg = comp.layers.addSolid([0, 0, 0], "Background", comp.width, comp.height, 1);
+        bg.moveToBeginning();
+        return comp;
+    }
+
+    function getOrCreateController(comp) {
+        debugLog("getOrCreateController()");
+        var controllerName = "Ctrl_Starfield";
+        for (var i = comp.numLayers; i >= 1; i--) {
+            try {
+                var ln = comp.layer(i).name;
+                if (ln === controllerName || ln === "Starfield_Controller") {
+                    comp.layer(i).remove();
+                }
+            } catch (e) {}
+        }
+
+        var nullLayer = comp.layers.addNull();
+        nullLayer.name = controllerName;
+        nullLayer.label = 9; // 绿色标签，方便在时间轴中识别
+
+        addSliderToLayer(nullLayer, "粒子数量", 200);
+        addSliderToLayer(nullLayer, "最小尺寸", 3);
+        addSliderToLayer(nullLayer, "最大尺寸", 15);
+        addSliderToLayer(nullLayer, "色相(0-360)", 210);
+        addSliderToLayer(nullLayer, "色相随机范围", 30);
+        addSliderToLayer(nullLayer, "饱和度", 80);
+        addSliderToLayer(nullLayer, "亮度", 90);
+        addSliderToLayer(nullLayer, "运动方向(度)", 270);
+        addSliderToLayer(nullLayer, "方向随机范围", 180);
+        addSliderToLayer(nullLayer, "最小速度", 30);
+        addSliderToLayer(nullLayer, "最大速度", 100);
+        addSliderToLayer(nullLayer, "最小生命周期(秒)", 2);
+        addSliderToLayer(nullLayer, "最大生命周期(秒)", 6);
+        addSliderToLayer(nullLayer, "淡入时长(秒)", 0.3);
+        addSliderToLayer(nullLayer, "淡出时长(秒)", 0.8);
+        addSliderToLayer(nullLayer, "闪烁强度", 20);
+        addSliderToLayer(nullLayer, "闪烁速度", 2);
+        addSliderToLayer(nullLayer, "随机种子", 42);
+        return nullLayer;
+    }
+
+    function addSliderToLayer(layer, name, defaultValue) {
+        var fxGroup = layer.property("ADBE Effect Parade");
+        var effect = addPropertySafe(fxGroup,
+            ["ADBE Slider Control", "ADBE Slider Control-0001", "滑块控制"]);
+        if (!effect) throw new Error("无法添加滑块控制器: " + name);
+        effect.name = name;
+        var sliderProp = getPropertySafe(effect,
+            ["ADBE Slider Control-0001", "滑块", "Slider"]);
+        sliderProp.setValue(defaultValue);
+    }
+
+    function getControllerSliderValue(controller, sliderName) {
+        try {
+            var effects = controller.property("ADBE Effect Parade");
+            for (var i = 1; i <= effects.numProperties; i++) {
+                if (effects.property(i).name === sliderName) {
+                    var sp = getPropertySafe(effects.property(i),
+                        ["ADBE Slider Control-0001", "滑块", "Slider"]);
+                    return sp ? sp.value : null;
+                }
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    function updateControllerSlider(controller, sliderName, value) {
+        if (value === undefined || value === null) return;
+        try {
+            var effects = controller.property("ADBE Effect Parade");
+            for (var i = 1; i <= effects.numProperties; i++) {
+                if (effects.property(i).name === sliderName) {
+                    var sp = getPropertySafe(effects.property(i),
+                        ["ADBE Slider Control-0001", "滑块", "Slider"]);
+                    if (sp) sp.setValue(value);
+                    return;
+                }
+            }
+        } catch (e) {
+            debugLog("  slider error '" + sliderName + "': " + e.toString());
+        }
+    }
+
+    // ==================== 表达式生成 ====================
+
+    function buildPositionExpression() {
+        return [
+            'seedRandom(index, true);',
+            '',
+            'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            'var dirBase = ctrl.effect("运动方向(度)")("滑块");',
+            'var dirSpread = ctrl.effect("方向随机范围")("滑块");',
+            'var speedMin = ctrl.effect("最小速度")("滑块");',
+            'var speedMax = ctrl.effect("最大速度")("滑块");',
+            'var seedVal = ctrl.effect("随机种子")("滑块");',
+            '',
+            'seedRandom(index + seedVal, true);',
+            '',
+            'var startX = random(0, thisComp.width);',
+            'var startY = random(0, thisComp.height);',
+            'var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));',
+            'var speed = random(speedMin, speedMax);',
+            '',
+            'var rawX = startX + Math.cos(angle) * speed * time;',
+            'var rawY = startY + Math.sin(angle) * speed * time;',
+            '',
+            'var wrapX = rawX % thisComp.width;',
+            'var wrapY = rawY % thisComp.height;',
+            'if (wrapX < 0) wrapX += thisComp.width;',
+            'if (wrapY < 0) wrapY += thisComp.height;',
+            '',
+            '[wrapX, wrapY];'
+        ].join('\n');
+    }
+
+    function buildOpacityExpression() {
+        return [
+            'seedRandom(index, true);',
+            '',
+            'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            'var lifeMin = ctrl.effect("最小生命周期(秒)")("滑块");',
+            'var lifeMax = ctrl.effect("最大生命周期(秒)")("滑块");',
+            'var fadeIn = ctrl.effect("淡入时长(秒)")("滑块");',
+            'var fadeOut = ctrl.effect("淡出时长(秒)")("滑块");',
+            'var twinkleStrength = ctrl.effect("闪烁强度")("滑块");',
+            'var twinkleSpeed = ctrl.effect("闪烁速度")("滑块");',
+            'var seedVal = ctrl.effect("随机种子")("滑块");',
+            '',
+            'seedRandom(index + seedVal + 1000, true);',
+            'var lifeDuration = random(lifeMin, lifeMax);',
+            'var cycleTime = time % lifeDuration;',
+            '',
+            'var baseOpacity = 100;',
+            'if (cycleTime < fadeIn) {',
+            '    baseOpacity = linear(cycleTime, 0, fadeIn, 0, 100);',
+            '} else if (cycleTime > lifeDuration - fadeOut) {',
+            '    baseOpacity = linear(cycleTime, lifeDuration - fadeOut, lifeDuration, 100, 0);',
+            '}',
+            '',
+            'var twinkle = 0;',
+            'if (twinkleStrength > 0) {',
+            '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength;',
+            '}',
+            'Math.max(0, Math.min(100, baseOpacity + twinkle));'
+        ].join('\n');
+    }
+
+    function buildScaleExpression() {
+        return [
+            'seedRandom(index, true);',
+            'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            'var sizeMin = ctrl.effect("最小尺寸")("滑块");',
+            'var sizeMax = ctrl.effect("最大尺寸")("滑块");',
+            'var seedVal = ctrl.effect("随机种子")("滑块");',
+            'seedRandom(index + seedVal + 2000, true);',
+            'var s = random(sizeMin, sizeMax);',
+            '[s, s];'
+        ].join('\n');
+    }
+
+    function buildColorExpression() {
+        return [
+            'seedRandom(index, true);',
+            'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            'var hueBase = ctrl.effect("色相(0-360)")("滑块");',
+            'var hueVar = ctrl.effect("色相随机范围")("滑块");',
+            'var sat = ctrl.effect("饱和度")("滑块");',
+            'var light = ctrl.effect("亮度")("滑块");',
+            'var seedVal = ctrl.effect("随机种子")("滑块");',
+            '',
+            'seedRandom(index + seedVal + 3000, true);',
+            'var h = hueBase + random(-hueVar/2, hueVar/2);',
+            'h = h % 360; if (h < 0) h += 360;',
+            'var s = sat / 100; var l = light / 100;',
+            'var c = (1 - Math.abs(2 * l - 1)) * s;',
+            'var x = c * (1 - Math.abs(((h / 60) % 2) - 1));',
+            'var m = l - c / 2;',
+            'var r, g, b;',
+            'if (h < 60) { r = c; g = x; b = 0; }',
+            'else if (h < 120) { r = x; g = c; b = 0; }',
+            'else if (h < 180) { r = 0; g = c; b = x; }',
+            'else if (h < 240) { r = 0; g = x; b = c; }',
+            'else if (h < 300) { r = x; g = 0; b = c; }',
+            'else { r = c; g = 0; b = x; }',
+            '[r + m, g + m, b + m, 1];'
+        ].join('\n');
+    }
+
+    // ==================== 粒子生成与清除 ====================
+
+    function generateParticles(comp, controller, count, shapeIdx) {
+        debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
+        if (shapeIdx === undefined) shapeIdx = 0;
+
+        app.beginUndoGroup("生成星空粒子");
+        try {
+            controller.moveToEnd();
+
+            // 删除旧粒子
+            for (var i = comp.numLayers; i >= 1; i--) {
+                try {
+                    if (comp.layer(i).name.indexOf("Star_Particle_") === 0) {
+                        comp.layer(i).remove();
+                    }
+                } catch (e) {}
+            }
+
+            var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
+            debugLog("  creating " + actualCount + " particles...");
+
+            var posExpr = buildPositionExpression();
+            var opacityExpr = buildOpacityExpression();
+            var scaleExpr = buildScaleExpression();
+            var colorExpr = buildColorExpression();
+
+            for (var p = 1; p <= actualCount; p++) {
+                var particleName = "Star_Particle_" + padNumber(p, 4);
+
+                // === Solid 层（v1.4 验证稳定） ===
+                var solid = comp.layers.addSolid([1, 1, 1], particleName, 100, 100, comp.pixelAspect);
+
+                // Transform 表达式
+                solid.property("Position").expression = posExpr;
+                solid.property("Scale").expression = scaleExpr;
+                solid.property("Opacity").expression = opacityExpr;
+
+                // Fill 效果控制颜色
+                var fx = solid.property("ADBE Effect Parade");
+                var fillFx = addPropertySafe(fx,
+                    ["ADBE Fill", "ADBE Fill-0001", "填充"]);
+                if (fillFx) {
+                    for (var fi = 1; fi <= fillFx.numProperties; fi++) {
+                        var fprop = fillFx.property(fi);
+                        try {
+                            var pv = fprop.value;
+                            // 按值类型检测：Color 属性返回 4 元素 RGBA 数组（不依赖语言）
+                            if (pv instanceof Array && pv.length === 4) {
+                                fprop.expression = colorExpr;
+                            }
+                            // 不透明度：名为 Opacity 或 不透明度
+                            else if (fprop.name === "Opacity" || fprop.name.indexOf("不透明") >= 0) {
+                                fprop.setValue(1);
+                            }
+                        } catch (eName) {}
+                    }
+                }
+
+                // === 形状 ===
+                if (shapeIdx === 0) {
+                    // 圆形：添加椭圆 mask
+                    addCircleMask(solid);
+                }
+                // shapeIdx === 1: 正方形（原生 Solid，不做任何处理）
+
+                if (p % 100 === 0) {
+                    debugLog("    " + p + "/" + actualCount + " created");
+                }
+            }
+
+            updateControllerSlider(controller, "粒子数量", actualCount);
+            debugLog("  DONE: " + actualCount + " particles");
+            alert("已生成 " + actualCount + " 个星空粒子！\n\n可通过「Ctrl_Starfield」层调整所有参数。");
+
+        } catch (e) {
+            debugLog("  FAILED: " + e.toString());
+            showErrorReport("生成粒子失败",
+                "在生成第 " + (typeof p !== "undefined" ? p : "?") + " 个粒子时出错", e, e.line);
+            throw e;
+        } finally {
+            app.endUndoGroup();
+        }
+    }
+
+    function clearParticles(comp) {
+        app.beginUndoGroup("清除星空粒子");
+        try {
+            var removed = 0;
+            for (var i = comp.numLayers; i >= 1; i--) {
+                try {
+                    if (comp.layer(i).name.indexOf("Star_Particle_") === 0) {
+                        comp.layer(i).remove();
+                        removed++;
+                    }
+                } catch (e) {}
+            }
+            alert("已清除 " + removed + " 个粒子层。");
+        } catch (e) {
+            showErrorReport("清除粒子失败", e.toString(), e, e.line);
+        } finally {
+            app.endUndoGroup();
+        }
+    }
+
+    function clearAll(comp) {
+        app.beginUndoGroup("清除全部星空元素");
+        try {
+            var removed = 0;
+            for (var i = comp.numLayers; i >= 1; i--) {
+                try {
+                    var name = comp.layer(i).name;
+                    if (name.indexOf("Star_Particle_") === 0 ||
+                        name === "Ctrl_Starfield" || name === "Starfield_Controller") {
+                        comp.layer(i).remove();
+                        removed++;
+                    }
+                } catch (e) {}
+            }
+            alert("已清除全部星空元素（共 " + removed + " 层）。");
+        } catch (e) {
+            showErrorReport("清除全部失败", e.toString(), e, e.line);
+        } finally {
+            app.endUndoGroup();
+        }
+    }
+
+    function padNumber(num, width) {
+        var s = num.toString();
+        while (s.length < width) s = "0" + s;
+        return s;
+    }
+
+    // ==================== 预设系统 ====================
+
+    function getPresetFromController(controller) {
+        var preset = {};
+        var names = [
+            "粒子数量", "最小尺寸", "最大尺寸",
+            "色相(0-360)", "色相随机范围", "饱和度", "亮度",
+            "运动方向(度)", "方向随机范围", "最小速度", "最大速度",
+            "最小生命周期(秒)", "最大生命周期(秒)", "淡入时长(秒)", "淡出时长(秒)",
+            "闪烁强度", "闪烁速度", "随机种子"
+        ];
+        for (var i = 0; i < names.length; i++) {
+            preset[names[i]] = getControllerSliderValue(controller, names[i]);
+        }
+        return preset;
+    }
+
+    function applyPresetToController(controller, preset) {
+        for (var key in preset) {
+            if (preset.hasOwnProperty(key)) {
+                updateControllerSlider(controller, key, preset[key]);
+            }
+        }
+    }
+
+    function savePreset(controller) {
+        try {
+            var preset = getPresetFromController(controller);
+            var jsonStr = JSON.stringify(preset, null, 2);
+            var file = File.saveDialog("保存星空预设", "*.json");
+            if (file) {
+                file.encoding = "UTF-8";
+                file.open("w");
+                file.write(jsonStr);
+                file.close();
+                alert("预设已保存！");
+            }
+        } catch (e) {
+            showErrorReport("保存预设失败", e.toString(), e, e.line);
+        }
+    }
+
+    function loadPreset(controller, comp) {
+        try {
+            var file = File.openDialog("加载星空预设", "*.json");
+            if (!file) return;
+            file.encoding = "UTF-8";
+            file.open("r");
+            var jsonStr = file.read();
+            file.close();
+            var preset = JSON.parse(jsonStr);
+            applyPresetToController(controller, preset);
+            if (confirm("预设已加载。是否重新生成粒子？")) {
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0);
+            }
+        } catch (e) {
+            showErrorReport("加载预设失败", e.toString(), e, e.line);
+        }
+    }
+
+    var builtInPresets = {
+        "经典星空": {
+            "粒子数量": 300, "最小尺寸": 2, "最大尺寸": 10,
+            "形状": 0,
+            "色相(0-360)": 210, "色相随机范围": 20, "饱和度": 30, "亮度": 95,
+            "运动方向(度)": 270, "方向随机范围": 30, "最小速度": 10, "最大速度": 40,
+            "最小生命周期(秒)": 3, "最大生命周期(秒)": 8,
+            "淡入时长(秒)": 0.3, "淡出时长(秒)": 0.5,
+            "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42
+        },
+        "彩色星云": {
+            "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
+            "形状": 0,
+            "色相(0-360)": 0, "色相随机范围": 360, "饱和度": 80, "亮度": 85,
+            "运动方向(度)": 0, "方向随机范围": 360, "最小速度": 5, "最大速度": 30,
+            "最小生命周期(秒)": 1, "最大生命周期(秒)": 5,
+            "淡入时长(秒)": 0.2, "淡出时长(秒)": 1,
+            "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123
+        },
+        "极光飘动": {
+            "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
+            "形状": 0,
+            "色相(0-360)": 160, "色相随机范围": 60, "饱和度": 70, "亮度": 80,
+            "运动方向(度)": 90, "方向随机范围": 20, "最小速度": 20, "最大速度": 80,
+            "最小生命周期(秒)": 2, "最大生命周期(秒)": 4,
+            "淡入时长(秒)": 0.5, "淡出时长(秒)": 1.5,
+            "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777
+        },
+        "金色粒子雨": {
+            "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
+            "形状": 1,
+            "色相(0-360)": 45, "色相随机范围": 15, "饱和度": 90, "亮度": 75,
+            "运动方向(度)": 180, "方向随机范围": 15, "最小速度": 80, "最大速度": 200,
+            "最小生命周期(秒)": 1.5, "最大生命周期(秒)": 3,
+            "淡入时长(秒)": 0.1, "淡出时长(秒)": 0.3,
+            "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256
+        }
+    };
+
+    // ==================== UI 构建 ====================
+
+    function buildUI(thisObj) {
+        debugLog("buildUI() starting...");
+
+        var panel = (thisObj instanceof Panel) ? thisObj :
+            new Window("palette", "星空粒子生成器 v1.7", undefined, {resizeable: true});
+
+        panel.orientation = "column";
+        panel.alignChildren = ["fill", "top"];
+        panel.spacing = 6;
+        panel.margins = [10, 10, 10, 10];
+
+        // ===== 标题 =====
+        var titleRow = panel.add("group");
+        titleRow.orientation = "row";
+        titleRow.alignment = ["fill", "top"];
+        titleRow.alignChildren = ["left", "center"];
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.7").preferredSize = [300, 24];
+
+        var line1 = panel.add("panel");
+        line1.preferredSize = [-1, 2];
+
+        // ===== 状态栏 =====
+        var statusRow = panel.add("group");
+        statusRow.orientation = "row";
+        statusRow.alignment = ["fill", "top"];
+        statusRow.alignChildren = ["left", "center"];
+        statusRow.add("statictext", undefined, "状态: ").preferredSize = [40, 18];
+        var statusText = statusRow.add("edittext", undefined, "就绪");
+        statusText.preferredSize = [200, 18];
+        statusText.active = false;
+        function setStatus(msg) { statusText.text = msg; }
+
+        statusRow.add("statictext", undefined, "  AE " + app.version).preferredSize = [80, 18];
+
+        var line2 = panel.add("panel");
+        line2.preferredSize = [-1, 2];
+
+        // ==============================
+        //  粒子参数
+        // ==============================
+        var paramGroup = panel.add("panel");
+        paramGroup.text = " 粒子参数 ";
+        paramGroup.orientation = "column";
+        paramGroup.alignChildren = ["fill", "top"];
+        paramGroup.spacing = 4;
+        paramGroup.margins = [8, 14, 8, 8];
+
+        var r1 = paramGroup.add("group");
+        r1.orientation = "row"; r1.alignment = ["fill", "center"];
+        r1.add("statictext", undefined, "数量:").preferredSize = [50, 18];
+        var countSlider = r1.add("slider", undefined, 200, 10, 2000);
+        countSlider.preferredSize = [100, 20];
+        var countValue = r1.add("edittext", undefined, "200");
+        countValue.preferredSize = [40, 20]; countValue.characters = 4;
+        countSlider.onChanging = function() { countValue.text = Math.round(countSlider.value).toString(); };
+        countValue.onChange = function() {
+            var v = parseInt(countValue.text);
+            if (!isNaN(v)) countSlider.value = Math.max(10, Math.min(2000, v));
+        };
+
+        var r1b = paramGroup.add("group");
+        r1b.orientation = "row"; r1b.alignment = ["fill", "center"];
+        r1b.add("statictext", undefined, "尺寸:").preferredSize = [50, 18];
+        var sizeMinInput = r1b.add("edittext", undefined, "3");
+        sizeMinInput.preferredSize = [30, 20]; sizeMinInput.characters = 3;
+        r1b.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
+        var sizeMaxInput = r1b.add("edittext", undefined, "15");
+        sizeMaxInput.preferredSize = [30, 20]; sizeMaxInput.characters = 3;
+        r1b.add("statictext", undefined, " px").preferredSize = [25, 18];
+
+        var r1c = paramGroup.add("group");
+        r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
+        r1c.add("statictext", undefined, "形状:").preferredSize = [50, 18];
+        var shapeDropdown = r1c.add("dropdownlist", undefined, ["圆形", "正方形"]);
+        shapeDropdown.selection = 0;
+        shapeDropdown.preferredSize = [120, 20];
+
+        var r2 = paramGroup.add("group");
+        r2.orientation = "row"; r2.alignment = ["fill", "center"];
+        r2.add("statictext", undefined, "色相:").preferredSize = [50, 18];
+        var hueSlider = r2.add("slider", undefined, 210, 0, 360);
+        hueSlider.preferredSize = [80, 20];
+        var hueValue = r2.add("edittext", undefined, "210");
+        hueValue.preferredSize = [30, 20]; hueValue.characters = 3;
+        r2.add("statictext", undefined, "deg").preferredSize = [24, 18];
+
+        // 颜色预览方块 + 选取按钮
+        var colorSwatch = r2.add("panel");
+        colorSwatch.preferredSize = [18, 18];
+        colorSwatch.alignment = ["center", "center"];
+        // 用 background color 渲染颜色（通过 updateColorSwatch 更新）
+        function updateColorSwatch() {
+            try {
+                var h = hueSlider.value;
+                var s = satSlider.value / 100;
+                var l = lightSlider.value / 100;
+                var rColor = 0, gColor = 0, bColor = 0;
+                // HSL → RGB
+                var c = (1 - Math.abs(2 * l - 1)) * s;
+                var x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+                var m = l - c / 2;
+                if (h < 60) { rColor = c + m; gColor = x + m; bColor = m; }
+                else if (h < 120) { rColor = x + m; gColor = c + m; bColor = m; }
+                else if (h < 180) { rColor = m; gColor = c + m; bColor = x + m; }
+                else if (h < 240) { rColor = m; gColor = x + m; bColor = c + m; }
+                else if (h < 300) { rColor = x + m; gColor = m; bColor = c + m; }
+                else { rColor = c + m; gColor = m; bColor = x + m; }
+                try {
+                    var gfx = colorSwatch.graphics;
+                    if (!gfx || !gfx.newBrush) throw "no brush support";
+                    var brushType = (gfx.BrushType && gfx.BrushType.SOLID_COLOR) || 0;
+                    var brush = gfx.newBrush(brushType, [rColor, gColor, bColor]);
+                    if (brush) {
+                        colorSwatch.graphics.backgroundColor = brush;
+                        colorSwatch.graphics.disabledBackgroundColor = brush;
+                    }
+                } catch (eBrush) {}                    var brush = gfx.newBrush(brushType, [rColor, gColor, bColor]);
+                    if (brush) {
+                        colorSwatch.graphics.backgroundColor = brush;
+                        colorSwatch.graphics.disabledBackgroundColor = brush;
+                    }
+                } catch (e) {}
+            } catch (e) {}
+        }
+        // 初始颜色
+        updateColorSwatch();
+
+        var pickBtn = r2.add("button", undefined, "\u2026");
+        pickBtn.preferredSize = [22, 20];
+        pickBtn.helpTip = "打开颜色选取器";
+        pickBtn.onClick = function() {
+            openColorPicker(hueSlider, satSlider, lightSlider, satValue, lightValue, updateColorSwatch);
+        };
+
+        // 更新 hueSlider 回调，同步颜色方块
+        var origHueChanging = hueSlider.onChanging;
+        hueSlider.onChanging = function() {
+            hueValue.text = Math.round(hueSlider.value).toString();
+            updateColorSwatch();
+        };
+        var origHueChange = hueValue.onChange;
+        hueValue.onChange = function() {
+            var v = parseInt(hueValue.text);
+            if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(360, v)); updateColorSwatch(); }
+        };
+
+        var r3 = paramGroup.add("group");
+        r3.orientation = "row"; r3.alignment = ["fill", "center"];
+        r3.add("statictext", undefined, "色相扩散:").preferredSize = [50, 18];
+        var hueVarSlider = r3.add("slider", undefined, 30, 0, 360);
+        hueVarSlider.preferredSize = [100, 20];
+        var hueVarValue = r3.add("edittext", undefined, "30");
+        hueVarValue.preferredSize = [30, 20]; hueVarValue.characters = 3;
+        r3.add("statictext", undefined, " +/- deg").preferredSize = [55, 18];
+        hueVarSlider.onChanging = function() { hueVarValue.text = Math.round(hueVarSlider.value).toString(); };
+        hueVarValue.onChange = function() {
+            var v = parseInt(hueVarValue.text);
+            if (!isNaN(v)) hueVarSlider.value = Math.max(0, Math.min(360, v));
+        };
+
+        var r4 = paramGroup.add("group");
+        r4.orientation = "row"; r4.alignment = ["fill", "center"];
+        r4.add("statictext", undefined, "饱和度:").preferredSize = [50, 18];
+        var satSlider = r4.add("slider", undefined, 80, 0, 100);
+        satSlider.preferredSize = [50, 20];
+        var satValue = r4.add("statictext", undefined, "80%");
+        satValue.preferredSize = [30, 18];
+        r4.add("statictext", undefined, "  亮度:").preferredSize = [40, 18];
+        var lightSlider = r4.add("slider", undefined, 90, 0, 100);
+        lightSlider.preferredSize = [50, 20];
+        var lightValue = r4.add("statictext", undefined, "90%");
+        lightValue.preferredSize = [30, 18];
+        satSlider.onChanging = function() {
+            satValue.text = Math.round(satSlider.value) + "%";
+            try { updateColorSwatch(); } catch (e) {}
+        };
+        lightSlider.onChanging = function() {
+            lightValue.text = Math.round(lightSlider.value) + "%";
+            try { updateColorSwatch(); } catch (e) {}
+        };
+
+        // ==============================
+        //  运动控制
+        // ==============================
+        var motionGroup = panel.add("panel");
+        motionGroup.text = " 运动控制 ";
+        motionGroup.orientation = "column";
+        motionGroup.alignChildren = ["fill", "top"];
+        motionGroup.spacing = 4;
+        motionGroup.margins = [8, 14, 8, 8];
+
+        var m1 = motionGroup.add("group");
+        m1.orientation = "row"; m1.alignment = ["fill", "center"];
+        m1.add("statictext", undefined, "主方向:").preferredSize = [50, 18];
+        var dirSlider = m1.add("slider", undefined, 270, 0, 360);
+        dirSlider.preferredSize = [100, 20];
+        var dirValue = m1.add("edittext", undefined, "270");
+        dirValue.preferredSize = [30, 20]; dirValue.characters = 3;
+        m1.add("statictext", undefined, " deg").preferredSize = [30, 18];
+        dirSlider.onChanging = function() { dirValue.text = Math.round(dirSlider.value).toString(); };
+        dirValue.onChange = function() {
+            var v = parseInt(dirValue.text);
+            if (!isNaN(v)) dirSlider.value = Math.max(0, Math.min(360, v));
+        };
+
+        var m2 = motionGroup.add("group");
+        m2.orientation = "row"; m2.alignment = ["fill", "center"];
+        m2.add("statictext", undefined, "方向扩散:").preferredSize = [50, 18];
+        var spreadSlider = m2.add("slider", undefined, 180, 0, 360);
+        spreadSlider.preferredSize = [100, 20];
+        var spreadValue = m2.add("edittext", undefined, "180");
+        spreadValue.preferredSize = [30, 20]; spreadValue.characters = 3;
+        m2.add("statictext", undefined, " +/- deg").preferredSize = [55, 18];
+        spreadSlider.onChanging = function() { spreadValue.text = Math.round(spreadSlider.value).toString(); };
+        spreadValue.onChange = function() {
+            var v = parseInt(spreadValue.text);
+            if (!isNaN(v)) spreadSlider.value = Math.max(0, Math.min(360, v));
+        };
+
+        var m3 = motionGroup.add("group");
+        m3.orientation = "row"; m3.alignment = ["fill", "center"];
+        m3.add("statictext", undefined, "速度:").preferredSize = [50, 18];
+        var speedMinInput = m3.add("edittext", undefined, "30");
+        speedMinInput.preferredSize = [35, 20]; speedMinInput.characters = 4;
+        m3.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
+        var speedMaxInput = m3.add("edittext", undefined, "100");
+        speedMaxInput.preferredSize = [35, 20]; speedMaxInput.characters = 4;
+        m3.add("statictext", undefined, " px/s").preferredSize = [35, 18];
+
+        // ==============================
+        //  生命周期
+        // ==============================
+        var lifeGroup = panel.add("panel");
+        lifeGroup.text = " 生命周期 ";
+        lifeGroup.orientation = "column";
+        lifeGroup.alignChildren = ["fill", "top"];
+        lifeGroup.spacing = 4;
+        lifeGroup.margins = [8, 14, 8, 8];
+
+        var l1 = lifeGroup.add("group");
+        l1.orientation = "row"; l1.alignment = ["fill", "center"];
+        l1.add("statictext", undefined, "时长:").preferredSize = [50, 18];
+        var lifeMinInput = l1.add("edittext", undefined, "2");
+        lifeMinInput.preferredSize = [35, 20]; lifeMinInput.characters = 4;
+        l1.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
+        var lifeMaxInput = l1.add("edittext", undefined, "6");
+        lifeMaxInput.preferredSize = [35, 20]; lifeMaxInput.characters = 4;
+        l1.add("statictext", undefined, " 秒").preferredSize = [25, 18];
+
+        var l2 = lifeGroup.add("group");
+        l2.orientation = "row"; l2.alignment = ["fill", "center"];
+        l2.add("statictext", undefined, "淡入:").preferredSize = [50, 18];
+        var fadeInInput = l2.add("edittext", undefined, "0.3");
+        fadeInInput.preferredSize = [35, 20]; fadeInInput.characters = 4;
+        l2.add("statictext", undefined, " s  淡出:").preferredSize = [60, 18];
+        var fadeOutInput = l2.add("edittext", undefined, "0.8");
+        fadeOutInput.preferredSize = [35, 20]; fadeOutInput.characters = 4;
+        l2.add("statictext", undefined, " s").preferredSize = [15, 18];
+
+        // ==============================
+        //  高级效果
+        // ==============================
+        var fxGroup = panel.add("panel");
+        fxGroup.text = " 高级效果 ";
+        fxGroup.orientation = "column";
+        fxGroup.alignChildren = ["fill", "top"];
+        fxGroup.spacing = 4;
+        fxGroup.margins = [8, 14, 8, 8];
+
+        var f1 = fxGroup.add("group");
+        f1.orientation = "row"; f1.alignment = ["fill", "center"];
+        var twinkleCheck = f1.add("checkbox", undefined, "闪烁效果");
+        twinkleCheck.value = true;
+        f1.add("statictext", undefined, " 强度:").preferredSize = [40, 18];
+        var twinkleStrSlider = f1.add("slider", undefined, 20, 0, 100);
+        twinkleStrSlider.preferredSize = [50, 20];
+        var twinkleStrValue = f1.add("statictext", undefined, "20%");
+        twinkleStrValue.preferredSize = [30, 18];
+        f1.add("statictext", undefined, " 速度:").preferredSize = [40, 18];
+        var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
+        twinkleSpdSlider.preferredSize = [50, 20];
+        var twinkleSpdValue = f1.add("statictext", undefined, "2");
+        twinkleSpdValue.preferredSize = [20, 18];
+        twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%"; };
+        twinkleSpdSlider.onChanging = function() { twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10; };
+
+        var f2 = fxGroup.add("group");
+        f2.orientation = "row"; f2.alignment = ["fill", "center"];
+        f2.add("statictext", undefined, "随机种子:").preferredSize = [60, 18];
+        var seedSlider = f2.add("slider", undefined, 42, 0, 9999);
+        seedSlider.preferredSize = [100, 20];
+        var seedValue = f2.add("edittext", undefined, "42");
+        seedValue.preferredSize = [35, 20]; seedValue.characters = 4;
+        var randomSeedBtn = f2.add("button", undefined, "随机");
+        randomSeedBtn.preferredSize = [45, 22];
+        seedSlider.onChanging = function() { seedValue.text = Math.round(seedSlider.value).toString(); };
+        seedValue.onChange = function() {
+            var v = parseInt(seedValue.text);
+            if (!isNaN(v)) seedSlider.value = Math.max(0, Math.min(9999, v));
+        };
+        randomSeedBtn.onClick = function() {
+            var r = Math.floor(Math.random() * 10000);
+            seedSlider.value = r;
+            seedValue.text = r.toString();
+        };
+
+        // ==============================
+        //  操作按钮
+        // ==============================
+        var btnPanel = panel.add("panel");
+        btnPanel.text = " 操作 ";
+        btnPanel.orientation = "column";
+        btnPanel.alignChildren = ["fill", "top"];
+        btnPanel.spacing = 6;
+        btnPanel.margins = [8, 14, 8, 10];
+
+        var generateBtn = btnPanel.add("button", undefined, "▶  生成粒子");
+        generateBtn.preferredSize = [-1, 32];
+
+        var secBtnRow = btnPanel.add("group");
+        secBtnRow.orientation = "row"; secBtnRow.alignment = ["fill", "top"];
+        secBtnRow.alignChildren = ["fill", "center"]; secBtnRow.spacing = 4;
+        var clearBtn = secBtnRow.add("button", undefined, "清除粒子");
+        clearBtn.preferredSize = [-1, 26];
+        var clearAllBtn = secBtnRow.add("button", undefined, "清除全部");
+        clearAllBtn.preferredSize = [-1, 26];
+
+        var ioBtnRow = btnPanel.add("group");
+        ioBtnRow.orientation = "row"; ioBtnRow.alignment = ["fill", "top"];
+        ioBtnRow.alignChildren = ["fill", "center"]; ioBtnRow.spacing = 4;
+        var saveBtn = ioBtnRow.add("button", undefined, "保存预设");
+        saveBtn.preferredSize = [-1, 26];
+        var loadBtn = ioBtnRow.add("button", undefined, "加载预设");
+        loadBtn.preferredSize = [-1, 26];
+        var debugBtn = ioBtnRow.add("button", undefined, "调试");
+        debugBtn.preferredSize = [55, 26];
+
+        // ==============================
+        //  快捷预设
+        // ==============================
+        var presetPanel = panel.add("panel");
+        presetPanel.text = " 快捷预设 ";
+        presetPanel.orientation = "column";
+        presetPanel.alignChildren = ["fill", "top"];
+        presetPanel.spacing = 4;
+        presetPanel.margins = [8, 14, 8, 10];
+
+        var presetRow1 = presetPanel.add("group");
+        presetRow1.orientation = "row"; presetRow1.alignment = ["fill", "center"];
+        presetRow1.alignChildren = ["fill", "center"]; presetRow1.spacing = 3;
+        var preset1Btn = presetRow1.add("button", undefined, "经典星空");
+        preset1Btn.preferredSize = [-1, 24];
+        var preset2Btn = presetRow1.add("button", undefined, "彩色星云");
+        preset2Btn.preferredSize = [-1, 24];
+
+        var presetRow2 = presetPanel.add("group");
+        presetRow2.orientation = "row"; presetRow2.alignment = ["fill", "center"];
+        presetRow2.alignChildren = ["fill", "center"]; presetRow2.spacing = 3;
+        var preset3Btn = presetRow2.add("button", undefined, "极光飘动");
+        preset3Btn.preferredSize = [-1, 24];
+        var preset4Btn = presetRow2.add("button", undefined, "金色粒子雨");
+        preset4Btn.preferredSize = [-1, 24];
+
+        // ==============================
+        //  UI 辅助函数
+        // ==============================
+
+        function getUIParams() {
+            return {
+                count: Math.round(countSlider.value),
+                sizeMin: parseFloat(sizeMinInput.text) || 3,
+                sizeMax: parseFloat(sizeMaxInput.text) || 15,
+                shape: shapeDropdown.selection ? shapeDropdown.selection.index : 0,
+                hue: Math.round(hueSlider.value),
+                hueVar: Math.round(hueVarSlider.value),
+                sat: Math.round(satSlider.value),
+                light: Math.round(lightSlider.value),
+                direction: Math.round(dirSlider.value),
+                dirSpread: Math.round(spreadSlider.value),
+                speedMin: parseFloat(speedMinInput.text) || 30,
+                speedMax: parseFloat(speedMaxInput.text) || 100,
+                lifeMin: parseFloat(lifeMinInput.text) || 2,
+                lifeMax: parseFloat(lifeMaxInput.text) || 6,
+                fadeIn: parseFloat(fadeInInput.text) || 0.3,
+                fadeOut: parseFloat(fadeOutInput.text) || 0.8,
+                twinkleEnabled: twinkleCheck.value,
+                twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
+                twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
+                seed: Math.round(seedSlider.value)
+            };
+        }
+
+        function applyUIToController(controller, params) {
+            updateControllerSlider(controller, "粒子数量", params.count);
+            updateControllerSlider(controller, "最小尺寸", params.sizeMin);
+            updateControllerSlider(controller, "最大尺寸", params.sizeMax);
+            updateControllerSlider(controller, "色相(0-360)", params.hue);
+            updateControllerSlider(controller, "色相随机范围", params.hueVar);
+            updateControllerSlider(controller, "饱和度", params.sat);
+            updateControllerSlider(controller, "亮度", params.light);
+            updateControllerSlider(controller, "运动方向(度)", params.direction);
+            updateControllerSlider(controller, "方向随机范围", params.dirSpread);
+            updateControllerSlider(controller, "最小速度", params.speedMin);
+            updateControllerSlider(controller, "最大速度", params.speedMax);
+            updateControllerSlider(controller, "最小生命周期(秒)", params.lifeMin);
+            updateControllerSlider(controller, "最大生命周期(秒)", params.lifeMax);
+            updateControllerSlider(controller, "淡入时长(秒)", params.fadeIn);
+            updateControllerSlider(controller, "淡出时长(秒)", params.fadeOut);
+            updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
+            updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
+            updateControllerSlider(controller, "随机种子", params.seed);
+        }
+
+        function applyPresetToUI(preset) {
+            countSlider.value = preset["粒子数量"] || 200;
+            countValue.text = Math.round(countSlider.value).toString();
+            sizeMinInput.text = (preset["最小尺寸"] || 3).toString();
+            sizeMaxInput.text = (preset["最大尺寸"] || 15).toString();
+            var sv = preset["形状"];
+            if (sv !== undefined) shapeDropdown.selection = sv;
+            hueSlider.value = preset["色相(0-360)"] || 210;
+            hueValue.text = Math.round(hueSlider.value).toString();
+            hueVarSlider.value = preset["色相随机范围"] || 30;
+            hueVarValue.text = Math.round(hueVarSlider.value).toString();
+            satSlider.value = preset["饱和度"] || 80;
+            satValue.text = Math.round(satSlider.value) + "%";
+            lightSlider.value = preset["亮度"] || 90;
+            lightValue.text = Math.round(lightSlider.value) + "%";
+            dirSlider.value = preset["运动方向(度)"] || 270;
+            dirValue.text = Math.round(dirSlider.value).toString();
+            spreadSlider.value = preset["方向随机范围"] || 180;
+            spreadValue.text = Math.round(spreadSlider.value).toString();
+            speedMinInput.text = (preset["最小速度"] || 30).toString();
+            speedMaxInput.text = (preset["最大速度"] || 100).toString();
+            lifeMinInput.text = (preset["最小生命周期(秒)"] || 2).toString();
+            lifeMaxInput.text = (preset["最大生命周期(秒)"] || 6).toString();
+            fadeInInput.text = (preset["淡入时长(秒)"] || 0.3).toString();
+            fadeOutInput.text = (preset["淡出时长(秒)"] || 0.8).toString();
+            twinkleStrSlider.value = preset["闪烁强度"] || 20;
+            twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%";
+            twinkleCheck.value = (preset["闪烁强度"] || 0) > 0;
+            twinkleSpdSlider.value = preset["闪烁速度"] || 2;
+            twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
+            seedSlider.value = preset["随机种子"] || 42;
+            seedValue.text = Math.round(seedSlider.value).toString();
+            try { updateColorSwatch(); } catch (e) {}
+        }
+
+        // ==============================
+        //  颜色选取器（RGB 调色板对话框）
+        // ==============================
+
+        /**
+         * 打开颜色选取对话框，通过 RGB 滑块直观选色
+         * 确认后自动更新 HSL 滑块
+         */
+        function openColorPicker(hueSliderRef, satSliderRef, lightSliderRef, satValRef, lightValRef, updateSwatchFn) {
+            // 当前值
+            var curH = hueSliderRef.value;
+            var curS = satSliderRef.value;
+            var curL = lightSliderRef.value;
+
+            // HSL → RGB (0-255)
+            function hslToRgbInt(h, s, l) {
+                h = h % 360; if (h < 0) h += 360;
+                s = Math.max(0, Math.min(100, s)) / 100;
+                l = Math.max(0, Math.min(100, l)) / 100;
+                var c = (1 - Math.abs(2 * l - 1)) * s;
+                var x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+                var m = l - c / 2;
+                var r = 0, g = 0, b = 0;
+                if (h < 60) { r = c + m; g = x + m; b = m; }
+                else if (h < 120) { r = x + m; g = c + m; b = m; }
+                else if (h < 180) { r = m; g = c + m; b = x + m; }
+                else if (h < 240) { r = m; g = x + m; b = c + m; }
+                else if (h < 300) { r = x + m; g = m; b = c + m; }
+                else { r = c + m; g = m; b = x + m; }
+                return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+            }
+
+            // RGB (0-255) → HSL
+            function rgbToHslInt(rR, gG, bB) {
+                var rr = rR / 255, gg = gG / 255, bb = bB / 255;
+                var mx = Math.max(rr, gg, bb), mn = Math.min(rr, gg, bb);
+                var dh = 0, ds = 0, dl = (mx + mn) / 2;
+                if (mx !== mn) {
+                    var dd = mx - mn;
+                    ds = dl > 0.5 ? dd / (2 - mx - mn) : dd / (mx + mn);
+                    if (mx === rr) dh = ((gg - bb) / dd + (gg < bb ? 6 : 0)) * 60;
+                    else if (mx === gg) dh = ((bb - rr) / dd + 2) * 60;
+                    else dh = ((rr - gg) / dd + 4) * 60;
+                }
+                return [Math.round(dh), Math.round(ds * 100), Math.round(dl * 100)];
+            }
+
+            // 获取初始 RGB
+            var initRGB = hslToRgbInt(curH, curS, curL);
+            var curR = initRGB[0], curG = initRGB[1], curB = initRGB[2];
+
+            var dlg = new Window("dialog", "颜色选取器 (Color Picker)");
+            dlg.orientation = "column";
+            dlg.alignChildren = ["fill", "top"];
+            dlg.spacing = 6;
+            dlg.margins = [12, 12, 12, 12];
+
+            // 预览区
+            var previewPane = dlg.add("panel");
+            previewPane.preferredSize = [200, 40];
+            previewPane.alignment = ["center", "top"];
+
+            function updatePreview(rv, gv, bv) {
+                try {
+                    var pgfx = previewPane.graphics;
+                    if (!pgfx || !pgfx.newBrush) return;
+                    var bType = (pgfx.BrushType && pgfx.BrushType.SOLID_COLOR) || 0;
+                    var pBrush = pgfx.newBrush(bType, [rv/255, gv/255, bv/255]);
+                    if (pBrush) {
+                        pgfx.backgroundColor = pBrush;
+                        pgfx.disabledBackgroundColor = pBrush;
+                    }
+                } catch (e) {}
+            }
+            updatePreview(curR, curG, curB);
+
+            // R
+            var rGrp = dlg.add("group");
+            rGrp.orientation = "row"; rGrp.alignment = ["fill", "center"];
+            rGrp.add("statictext", undefined, "R").preferredSize = [18, 18];
+            var rSl = rGrp.add("slider", undefined, curR, 0, 255);
+            rSl.preferredSize = [120, 20];
+            var rIn = rGrp.add("edittext", undefined, curR.toString());
+            rIn.preferredSize = [30, 20]; rIn.characters = 3;
+            rSl.onChanging = function() {
+                rIn.text = Math.round(rSl.value).toString();
+                updatePreview(rSl.value, gSl.value, bSl.value);
+            };
+            rIn.onChange = function() {
+                var vv = parseInt(rIn.text);
+                if (!isNaN(vv)) rSl.value = Math.max(0, Math.min(255, vv));
+            };
+
+            // G
+            var gGrp = dlg.add("group");
+            gGrp.orientation = "row"; gGrp.alignment = ["fill", "center"];
+            gGrp.add("statictext", undefined, "G").preferredSize = [18, 18];
+            var gSl = gGrp.add("slider", undefined, curG, 0, 255);
+            gSl.preferredSize = [120, 20];
+            var gIn = gGrp.add("edittext", undefined, curG.toString());
+            gIn.preferredSize = [30, 20]; gIn.characters = 3;
+            gSl.onChanging = function() {
+                gIn.text = Math.round(gSl.value).toString();
+                updatePreview(rSl.value, gSl.value, bSl.value);
+            };
+            gIn.onChange = function() {
+                var vv = parseInt(gIn.text);
+                if (!isNaN(vv)) gSl.value = Math.max(0, Math.min(255, vv));
+            };
+
+            // B
+            var bGrp = dlg.add("group");
+            bGrp.orientation = "row"; bGrp.alignment = ["fill", "center"];
+            bGrp.add("statictext", undefined, "B").preferredSize = [18, 18];
+            var bSl = bGrp.add("slider", undefined, curB, 0, 255);
+            bSl.preferredSize = [120, 20];
+            var bIn = bGrp.add("edittext", undefined, curB.toString());
+            bIn.preferredSize = [30, 20]; bIn.characters = 3;
+            bSl.onChanging = function() {
+                bIn.text = Math.round(bSl.value).toString();
+                updatePreview(rSl.value, gSl.value, bSl.value);
+            };
+            bIn.onChange = function() {
+                var vv = parseInt(bIn.text);
+                if (!isNaN(vv)) bSl.value = Math.max(0, Math.min(255, vv));
+            };
+
+            // 按钮
+            var btnGrp = dlg.add("group");
+            btnGrp.orientation = "row"; btnGrp.alignment = ["center", "bottom"];
+            btnGrp.spacing = 10;
+
+            var okBtn = btnGrp.add("button", undefined, "确定 (OK)");
+            okBtn.preferredSize = [80, 26];
+            okBtn.onClick = function() {
+                // 将 RGB 转换为 HSL，更新主界面滑块
+                var hsv = rgbToHslInt(Math.round(rSl.value), Math.round(gSl.value), Math.round(bSl.value));
+                hueSliderRef.value = hsv[0];
+                lightSliderRef.value = hsv[2];
+                satSliderRef.value = hsv[1];
+                // 更新显示文本
+                var hh = Math.round(hueSliderRef.value).toString();
+                hueValue.text = hh;
+                satValRef.text = hsv[1] + "%";
+                lightValRef.text = hsv[2] + "%";
+                // 更新颜色方块
+                try { updateSwatchFn(); } catch (e) {}
+                dlg.close();
+            };
+
+            var cancelBtn = btnGrp.add("button", undefined, "取消 (Cancel)");
+            cancelBtn.preferredSize = [80, 26];
+            cancelBtn.onClick = function() { dlg.close(); };
+
+            dlg.show();
+        }
+
+        // ==============================
+        //  按钮事件
+        // ==============================
+
+        function doGenerate() {
+            setStatus("正在生成...");
+            var comp = ensureComp();
+            var params = getUIParams();
+            debugLog("Generate: count=" + params.count + " shape=" + params.shape);
+            var controller = getOrCreateController(comp);
+            applyUIToController(controller, params);
+            generateParticles(comp, controller, params.count, params.shape);
+            setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
+        }
+
+        function applyBuiltInPreset(presetName) {
+            setStatus("加载: " + presetName);
+            var comp = ensureComp();
+            var preset = builtInPresets[presetName];
+            if (!preset) return;
+            applyPresetToUI(preset);
+            var controller = getOrCreateController(comp);
+            applyUIToController(controller, preset);
+            generateParticles(comp, controller, preset["粒子数量"], preset["形状"] || 0);
+            setStatus(presetName + " 已应用");
+        }
+
+        generateBtn.onClick = function() { safeExecute("生成粒子", doGenerate); };
+
+        clearBtn.onClick = function() {
+            safeExecute("清除粒子", function() {
+                var comp = getActiveComp();
+                if (!comp) { alert("请先打开一个合成！"); return; }
+                clearParticles(comp);
+                setStatus("已清除");
+            });
+        };
+
+        clearAllBtn.onClick = function() {
+            safeExecute("清除全部", function() {
+                var comp = getActiveComp();
+                if (!comp) { alert("请先打开一个合成！"); return; }
+                if (confirm("确定清除所有星空元素？不可撤销。")) {
+                    clearAll(comp);
+                    setStatus("全部已清除");
+                }
+            });
+        };
+
+        saveBtn.onClick = function() {
+            safeExecute("保存预设", function() {
+                var comp = getActiveComp();
+                if (!comp) { alert("请先打开合成！"); return; }
+                savePreset(getOrCreateController(comp));
+                setStatus("已保存");
+            });
+        };
+
+        loadBtn.onClick = function() {
+            safeExecute("加载预设", function() {
+                var comp = getActiveComp();
+                if (!comp) { alert("请先打开合成！"); return; }
+                loadPreset(getOrCreateController(comp), comp);
+                setStatus("已加载");
+            });
+        };
+
+        debugBtn.onClick = function() {
+            var info = [];
+            info.push("=== 调试信息 ===");
+            info.push("AE 版本: " + app.version);
+            info.push("日志条目: " + g_errorLog.length);
+            for (var li = Math.max(0, g_errorLog.length - 30); li < g_errorLog.length; li++) {
+                info.push(g_errorLog[li]);
+            }
+            var infoStr = info.join("\n");
+            var dlg = new Window("dialog", "调试信息");
+            dlg.orientation = "column";
+            dlg.alignChildren = ["fill", "top"];
+            dlg.spacing = 8; dlg.margins = [10, 10, 10, 10];
+            dlg.add("edittext", undefined, infoStr,
+                { multiline: true, readonly: true, scrolling: true }).preferredSize = [450, 300];
+            var copyBtn = dlg.add("button", undefined, "复制到剪贴板");
+            copyBtn.onClick = function() {
+                try {
+                    var tmp = new File(Folder.temp.fsName + "/ae_debug.txt");
+                    tmp.encoding = "UTF-8"; tmp.open("w"); tmp.write(infoStr); tmp.close();
+                    system.callSystem('cmd.exe /c clip < "' +
+                        Folder.temp.fsName.replace(/\\/g, "\\\\") + '\\\\ae_debug.txt"');
+                    tmp.remove();
+                    alert("已复制！");
+                } catch (e) { alert("复制失败，请手动选择文本。"); }
+            };
+            dlg.show();
+        };
+
+        preset1Btn.onClick = function() { safeExecute("经典星空", function() { applyBuiltInPreset("经典星空"); }); };
+        preset2Btn.onClick = function() { safeExecute("彩色星云", function() { applyBuiltInPreset("彩色星云"); }); };
+        preset3Btn.onClick = function() { safeExecute("极光飘动", function() { applyBuiltInPreset("极光飘动"); }); };
+        preset4Btn.onClick = function() { safeExecute("金色粒子雨", function() { applyBuiltInPreset("金色粒子雨"); }); };
+
+        // ==============================
+        //  布局
+        // ==============================
+        panel.layout.layout(true);
+        panel.layout.resize();
+        panel.onResizing = panel.onResize = function() { this.layout.resize(); };
+
+        setStatus("就绪");
+        debugLog("buildUI() done");
+        return panel;
+    }
+
+    // ==================== 启动 ====================
+
+    debugLog("=== 星空粒子生成器 v1.7 启动 ===");
+    debugLog("AE version: " + app.version);
+
+    try {
+        var panel = buildUI(this);
+        if (panel instanceof Window) {
+            panel.center();
+            panel.show();
+        }
+    } catch (e) {
+        debugLog("CRITICAL: " + e.toString());
+        showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
+    }
+}
