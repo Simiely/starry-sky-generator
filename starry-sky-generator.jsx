@@ -882,31 +882,31 @@
         r1b.add("statictext", undefined, "尺寸:");
         var sizeMinInput = r1b.add("edittext", undefined, "3");
         sizeMinInput.preferredSize = [55, 20]; sizeMinInput.characters = 5;
-        r1b.add("statictext", undefined, " ~ ");
+        r1b.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
         var sizeMaxInput = r1b.add("edittext", undefined, "15");
         sizeMaxInput.preferredSize = [55, 20]; sizeMaxInput.characters = 5;
-        r1b.add("statictext", undefined, " px (像素)");
+        r1b.add("statictext", undefined, " px (像素)").preferredSize = [75, 18];
 
         var r1d = paramGroup.add("group");
         r1d.orientation = "row"; r1d.alignment = ["fill", "center"];
         r1d.add("statictext", undefined, "缩放:");
         var sizeInitInput = r1d.add("edittext", undefined, "80");
         sizeInitInput.preferredSize = [55, 20]; sizeInitInput.characters = 5;
-        r1d.add("statictext", undefined, "% ~");
+        r1d.add("statictext", undefined, "% ~").preferredSize = [40, 18];
         var sizeFinalInput = r1d.add("edittext", undefined, "100");
         sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
-        r1d.add("statictext", undefined, " %");
+        r1d.add("statictext", undefined, " %").preferredSize = [25, 18];
 
         // 随机缩放行
         var r1f = paramGroup.add("group");
         r1f.orientation = "row"; r1f.alignment = ["fill", "center"];
-        r1f.add("statictext", undefined, "随机缩放: ~");
+        r1f.add("statictext", undefined, "随机缩放:");
         var svMinInput = r1f.add("edittext", undefined, "80");
         svMinInput.preferredSize = [55, 20]; svMinInput.characters = 5;
-        r1f.add("statictext", undefined, "% ~");
+        r1f.add("statictext", undefined, "% ~").preferredSize = [40, 18];
         var svMaxInput = r1f.add("edittext", undefined, "120");
         svMaxInput.preferredSize = [55, 20]; svMaxInput.characters = 5;
-        r1f.add("statictext", undefined, " %");
+        r1f.add("statictext", undefined, " %").preferredSize = [25, 18];
 
         var r1c = paramGroup.add("group");
         r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
@@ -933,7 +933,7 @@
         hueSlider.preferredSize = [60, 20];
         var hueValue = r2.add("edittext", undefined, "58");
         hueValue.preferredSize = [55, 20]; hueValue.characters = 5;
-        r2.add("statictext", undefined, "%");
+        r2.add("statictext", undefined, "%").preferredSize = [20, 18];
 
         // 饱和度
         r2.add("statictext", undefined, "饱和度:");
@@ -941,7 +941,7 @@
         satSlider.preferredSize = [60, 20];
         var satValue = r2.add("edittext", undefined, "80");
         satValue.preferredSize = [55, 20]; satValue.characters = 5;
-        r2.add("statictext", undefined, "%");
+        r2.add("statictext", undefined, "%").preferredSize = [20, 18];
 
         // 第二行：亮度 + 色相扩散
         var r2b = paramGroup.add("group");
@@ -952,14 +952,14 @@
         lightSlider.preferredSize = [60, 20];
         var lightValue = r2b.add("edittext", undefined, "50");
         lightValue.preferredSize = [55, 20]; lightValue.characters = 5;
-        r2b.add("statictext", undefined, "%");
+        r2b.add("statictext", undefined, "%").preferredSize = [20, 18];
 
         r2b.add("statictext", undefined, "色相扩散:");
         var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
         hueVarSlider.preferredSize = [60, 20];
         var hueVarValue = r2b.add("edittext", undefined, "30");
         hueVarValue.preferredSize = [55, 20]; hueVarValue.characters = 5;
-        r2b.add("statictext", undefined, "deg (角度)");
+        r2b.add("statictext", undefined, "deg (角度)").preferredSize = [65, 18];
 
         // HSL → RGB 颜色方块更新
         function updateColorSwatch() {
@@ -1150,7 +1150,7 @@
         dirSlider.preferredSize = [100, 20];
         var dirValue = m1.add("edittext", undefined, "270");
         dirValue.preferredSize = [55, 20]; dirValue.characters = 5;
-        m1.add("statictext", undefined, " deg (角度)");
+        m1.add("statictext", undefined, " deg (角度)").preferredSize = [75, 18];
         dirSlider.onChanging = function() { dirValue.text = Math.round(dirSlider.value).toString(); };
         dirValue.onChange = function() {
             var v = parseInt(dirValue.text);
@@ -1164,7 +1164,7 @@
         spreadSlider.preferredSize = [100, 20];
         var spreadValue = m2.add("edittext", undefined, "180");
         spreadValue.preferredSize = [55, 20]; spreadValue.characters = 5;
-        m2.add("statictext", undefined, " +/- deg (角度)");
+        m2.add("statictext", undefined, " +/- deg (角度)").preferredSize = [95, 18];
         spreadSlider.onChanging = function() { spreadValue.text = Math.round(spreadSlider.value).toString(); };
         spreadValue.onChange = function() {
             var v = parseInt(spreadValue.text);
@@ -1176,10 +1176,10 @@
         m3.add("statictext", undefined, "速度:");
         var speedMinInput = m3.add("edittext", undefined, "30");
         speedMinInput.preferredSize = [55, 20]; speedMinInput.characters = 5;
-        m3.add("statictext", undefined, " ~ ");
+        m3.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
         var speedMaxInput = m3.add("edittext", undefined, "100");
         speedMaxInput.preferredSize = [55, 20]; speedMaxInput.characters = 5;
-        m3.add("statictext", undefined, " px/s (像素/秒)");
+        m3.add("statictext", undefined, " px/s (像素/秒)").preferredSize = [105, 18];
 
         // 目标吸引（v2.0: Null层选取）
         var m4 = motionGroup.add("group");
@@ -1326,20 +1326,20 @@
         l1.add("statictext", undefined, "时长:");
         var lifeMinInput = l1.add("edittext", undefined, "2");
         lifeMinInput.preferredSize = [55, 20]; lifeMinInput.characters = 5;
-        l1.add("statictext", undefined, " ~ ");
+        l1.add("statictext", undefined, " ~ ").preferredSize = [25, 18];
         var lifeMaxInput = l1.add("edittext", undefined, "6");
         lifeMaxInput.preferredSize = [55, 20]; lifeMaxInput.characters = 5;
-        l1.add("statictext", undefined, " s (秒)");
+        l1.add("statictext", undefined, " s (秒)").preferredSize = [50, 18];
 
         var l2 = lifeGroup.add("group");
         l2.orientation = "row"; l2.alignment = ["fill", "center"];
         l2.add("statictext", undefined, "淡入:");
         var fadeInInput = l2.add("edittext", undefined, "0.3");
         fadeInInput.preferredSize = [55, 20]; fadeInInput.characters = 5;
-        l2.add("statictext", undefined, " s (秒)  淡出:");
+        l2.add("statictext", undefined, " s (秒)  淡出:").preferredSize = [85, 18];
         var fadeOutInput = l2.add("edittext", undefined, "0.8");
         fadeOutInput.preferredSize = [55, 20]; fadeOutInput.characters = 5;
-        l2.add("statictext", undefined, " s (秒)");
+        l2.add("statictext", undefined, " s (秒)").preferredSize = [50, 18];
 
         // ==============================
         //  高级效果
@@ -1360,7 +1360,7 @@
         twinkleStrSlider.preferredSize = [50, 20];
         var twinkleStrValue = f1.add("edittext", undefined, "50");
         twinkleStrValue.preferredSize = [55, 20]; twinkleStrValue.characters = 5;
-        f1.add("statictext", undefined, "%");
+        f1.add("statictext", undefined, "%").preferredSize = [20, 18];
         f1.add("statictext", undefined, " 速度:");
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
         twinkleSpdSlider.preferredSize = [50, 20];
@@ -1407,7 +1407,7 @@
         emitOffSlider.preferredSize = [80, 20];
         var emitOffValue = f4.add("edittext", undefined, "0");
         emitOffValue.preferredSize = [55, 20]; emitOffValue.characters = 5;
-        f4.add("statictext", undefined, "s (秒)");
+        f4.add("statictext", undefined, "s (秒)").preferredSize = [45, 18];
         emitOffSlider.onChanging = function() { emitOffValue.text = (Math.round(emitOffSlider.value * 10) / 10).toString(); };
         emitOffValue.onChange = function() {
             var v = parseFloat(emitOffValue.text);
@@ -1817,7 +1817,7 @@
             hSl.preferredSize = [120, 20];
             var hIn = hGrp.add("edittext", undefined, curH.toString());
             hIn.preferredSize = [55, 20]; hIn.characters = 5;
-            hGrp.add("statictext", undefined, "° (角度)");
+            hGrp.add("statictext", undefined, "° (角度)").preferredSize = [50, 18];
             hSl.onChanging = function() {
                 hIn.text = Math.round(hSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1835,7 +1835,7 @@
             sSl.preferredSize = [120, 20];
             var sIn = sGrp.add("edittext", undefined, curS.toString());
             sIn.preferredSize = [55, 20]; sIn.characters = 5;
-            sGrp.add("statictext", undefined, "%");
+            sGrp.add("statictext", undefined, "%").preferredSize = [20, 18];
             sIn.preferredSize = [45, 20]; sIn.characters = 3;
             sSl.onChanging = function() {
                 sIn.text = Math.round(sSl.value).toString();
@@ -1854,7 +1854,7 @@
             lSl.preferredSize = [120, 20];
             var lIn = lGrp.add("edittext", undefined, curL.toString());
             lIn.preferredSize = [45, 20]; lIn.characters = 3;
-            lGrp.add("statictext", undefined, "%");
+            lGrp.add("statictext", undefined, "%").preferredSize = [20, 18];
             lSl.onChanging = function() {
                 lIn.text = Math.round(lSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
