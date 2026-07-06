@@ -890,28 +890,20 @@
         panel.alignChildren = ["fill", "top"];
         panel.spacing = 6;
         panel.margins = [10, 10, 10, 10];
-
-        var scrollPane = panel.add("scrollpanel");
-        scrollPane.alignment = ["fill", "fill"];
-        scrollPane.preferredSize = [300, 600];
-        var scrollGroup = scrollPane.add("group");
-        scrollGroup.orientation = "column";
-        scrollGroup.alignChildren = ["fill", "top"];
-        scrollGroup.spacing = 6;
-        scrollGroup.margins = [0, 0, 0, 0];
+        panel.autoscroll = true;
 
         // ===== 标题 =====
-        var titleRow = scrollGroup.add("group");
+        var titleRow = panel.add("group");
         titleRow.orientation = "row";
         titleRow.alignment = ["fill", "top"];
         titleRow.alignChildren = ["left", "center"];
         titleRow.add("statictext", undefined, "★  星空粒子生成器  v2.0").preferredSize = [300, 24];
 
-        var line1 = scrollGroup.add("panel");
+        var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
 
         // ===== 状态栏 =====
-        var statusRow = scrollGroup.add("group");
+        var statusRow = panel.add("group");
         statusRow.orientation = "row";
         statusRow.alignment = ["fill", "top"];
         statusRow.alignChildren = ["left", "center"];
@@ -923,13 +915,13 @@
 
         statusRow.add("statictext", undefined, "  AE " + app.version).preferredSize = [80, 18];
 
-        var line2 = scrollGroup.add("panel");
+        var line2 = panel.add("panel");
         line2.preferredSize = [-1, 2];
 
         // ==============================
         //  粒子参数
         // ==============================
-        var paramGroup = scrollGroup.add("panel");
+        var paramGroup = panel.add("panel");
         paramGroup.text = " 粒子参数 ";
         paramGroup.orientation = "column";
         paramGroup.alignChildren = ["fill", "top"];
@@ -1206,7 +1198,7 @@
         // ==============================
         //  运动控制
         // ==============================
-        var motionGroup = scrollGroup.add("panel");
+        var motionGroup = panel.add("panel");
         motionGroup.text = " 运动控制 ";
         motionGroup.orientation = "column";
         motionGroup.alignChildren = ["fill", "top"];
@@ -1384,7 +1376,7 @@
         // ==============================
         //  生命周期
         // ==============================
-        var lifeGroup = scrollGroup.add("panel");
+        var lifeGroup = panel.add("panel");
         lifeGroup.text = " 生命周期 ";
         lifeGroup.orientation = "column";
         lifeGroup.alignChildren = ["fill", "top"];
@@ -1414,7 +1406,7 @@
         // ==============================
         //  高级效果
         // ==============================
-        var fxGroup = scrollGroup.add("panel");
+        var fxGroup = panel.add("panel");
         fxGroup.text = " 高级效果 ";
         fxGroup.orientation = "column";
         fxGroup.alignChildren = ["fill", "top"];
@@ -1476,7 +1468,7 @@
         // ==============================
         //  操作按钮
         // ==============================
-        var btnPanel = scrollGroup.add("panel");
+        var btnPanel = panel.add("panel");
         btnPanel.text = " 操作 ";
         btnPanel.orientation = "column";
         btnPanel.alignChildren = ["fill", "top"];
@@ -1503,7 +1495,7 @@
         // ==============================
         //  快捷预设
         // ==============================
-        var presetPanel = scrollGroup.add("panel");
+        var presetPanel = panel.add("panel");
         presetPanel.text = " 快捷预设 ";
         presetPanel.orientation = "column";
         presetPanel.alignChildren = ["fill", "top"];
@@ -1545,7 +1537,7 @@
         // ==============================
         //  槽位预设 (存储于 app.settings)
         // ==============================
-        var slotPanel = scrollGroup.add("panel");
+        var slotPanel = panel.add("panel");
         slotPanel.text = " 槽位预设 (Slot Preset) ";
         slotPanel.orientation = "column";
         slotPanel.alignChildren = ["fill", "top"];
