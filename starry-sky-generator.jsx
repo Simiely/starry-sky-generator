@@ -290,7 +290,7 @@
         addSliderToLayer(nullLayer, "色相(0-360)", 210);
         addSliderToLayer(nullLayer, "色相随机范围", 30);
         addSliderToLayer(nullLayer, "饱和度", 80);
-        addSliderToLayer(nullLayer, "亮度", 90);
+        addSliderToLayer(nullLayer, "亮度", 50);
         addSliderToLayer(nullLayer, "运动方向(度)", 270);
         addSliderToLayer(nullLayer, "方向随机范围", 180);
         addSliderToLayer(nullLayer, "最小速度", 30);
@@ -501,7 +501,7 @@
             'var hueBase = ctrl.effect("色相(0-360)") ? ctrl.effect("色相(0-360)")(1) : 210;',
             'var hueVar = ctrl.effect("色相随机范围") ? ctrl.effect("色相随机范围")(1) : 30;',
             'var sat = ctrl.effect("饱和度") ? ctrl.effect("饱和度")(1) : 80;',
-            'var light = ctrl.effect("亮度") ? ctrl.effect("亮度")(1) : 90;',
+            'var light = ctrl.effect("亮度") ? ctrl.effect("亮度")(1) : 50;',
             'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             '',
             'seedRandom(index + seedVal + 3000, true);',
@@ -952,9 +952,9 @@
         var satValue = r4.add("statictext", undefined, "80%");
         satValue.preferredSize = [30, 18];
         r4.add("statictext", undefined, "  亮度:").preferredSize = [40, 18];
-        var lightSlider = r4.add("slider", undefined, 90, 0, 100);
+        var lightSlider = r4.add("slider", undefined, 50, 0, 100);
         lightSlider.preferredSize = [50, 20];
-        var lightValue = r4.add("statictext", undefined, "90%");
+        var lightValue = r4.add("statictext", undefined, "50%");
         lightValue.preferredSize = [30, 18];
         satSlider.onChanging = function() {
             satValue.text = Math.round(satSlider.value) + "%";
@@ -1477,7 +1477,7 @@
             hueVarValue.text = Math.round(hueVarSlider.value).toString();
             satSlider.value = preset["饱和度"] || 80;
             satValue.text = Math.round(satSlider.value) + "%";
-            lightSlider.value = preset["亮度"] || 90;
+            lightSlider.value = preset["亮度"] || 50;
             lightValue.text = Math.round(lightSlider.value) + "%";
             dirSlider.value = preset["运动方向(度)"] || 270;
             dirValue.text = Math.round(dirSlider.value).toString();
