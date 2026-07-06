@@ -12,8 +12,8 @@
    ============================================================ */
 
 
-(function() {
 
+{
     // ==================== JSON Polyfill（ExtendScript 无内置 JSON） ====================
     // 参考: AE-Lyrics-Animator DEVELOPMENT.md
     if (typeof JSON === "undefined") { JSON = {}; }
@@ -2126,4 +2126,3 @@
         showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
     }
 }
-}).call(this);
