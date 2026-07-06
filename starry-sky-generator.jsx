@@ -981,31 +981,15 @@
         var r2 = paramGroup.add("group");
         r2.orientation = "row"; r2.alignment = ["fill", "center"];
 
-        // H
-        r2.add("statictext", undefined, "H:").preferredSize = [18, 18];
-        var hueSlider = r2.add("slider", undefined, 58, 0, 100); // 210/360*100≈58
+        // 色相
+        r2.add("statictext", undefined, "色相:").preferredSize = [35, 18];
+        var hueSlider = r2.add("slider", undefined, 58, 0, 100);
         hueSlider.preferredSize = [60, 20];
         var hueValue = r2.add("edittext", undefined, "58");
-        hueValue.preferredSize = [40, 20]; hueValue.characters = 3;
-        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
+        hueValue.preferredSize = [35, 20]; hueValue.characters = 3;
+        r2.add("statictext", undefined, "%").preferredSize = [12, 18];
 
-        // S
-        r2.add("statictext", undefined, "S:").preferredSize = [18, 18];
-        var satSlider = r2.add("slider", undefined, 80, 0, 100);
-        satSlider.preferredSize = [60, 20];
-        var satValue = r2.add("edittext", undefined, "80");
-        satValue.preferredSize = [40, 20]; satValue.characters = 3;
-        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
-
-        // L
-        r2.add("statictext", undefined, "L:").preferredSize = [18, 18];
-        var lightSlider = r2.add("slider", undefined, 50, 0, 100);
-        lightSlider.preferredSize = [60, 20];
-        var lightValue = r2.add("edittext", undefined, "50");
-        lightValue.preferredSize = [40, 20]; lightValue.characters = 3;
-        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
-
-        // 颜色预览方块
+        // 颜色预览方块 + 选取器
         var colorSwatch = r2.add("panel");
         colorSwatch.preferredSize = [18, 18];
         colorSwatch.alignment = ["center", "center"];
@@ -1013,27 +997,53 @@
         pickBtn.preferredSize = [22, 20];
         pickBtn.helpTip = "打开颜色选取器";
 
+        // 饱和度
+        r2.add("statictext", undefined, "饱和度:").preferredSize = [50, 18];
+        var satSlider = r2.add("slider", undefined, 80, 0, 100);
+        satSlider.preferredSize = [60, 20];
+        var satValue = r2.add("edittext", undefined, "80");
+        satValue.preferredSize = [35, 20]; satValue.characters = 3;
+        r2.add("statictext", undefined, "%").preferredSize = [12, 18];
+
+        // 第二行：亮度 + 色相扩散
+        var r2b = paramGroup.add("group");
+        r2b.orientation = "row"; r2b.alignment = ["fill", "center"];
+
+        r2b.add("statictext", undefined, "亮度:").preferredSize = [35, 18];
+        var lightSlider = r2b.add("slider", undefined, 50, 0, 100);
+        lightSlider.preferredSize = [60, 20];
+        var lightValue = r2b.add("edittext", undefined, "50");
+        lightValue.preferredSize = [35, 20]; lightValue.characters = 3;
+        r2b.add("statictext", undefined, "%").preferredSize = [12, 18];
+
+        r2b.add("statictext", undefined, "  色相扩散:").preferredSize = [68, 18];
+        var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
+        hueVarSlider.preferredSize = [60, 20];
+        var hueVarValue = r2b.add("edittext", undefined, "30");
+        hueVarValue.preferredSize = [40, 20]; hueVarValue.characters = 3;
+        r2b.add("statictext", undefined, "deg").preferredSize = [24, 18];
+
         // HSL → RGB 颜色方块更新
         function updateColorSwatch() {
             try {
-                var h = hueSlider.value * 3.6; // % → 角度
+                var h = hueSlider.value * 3.6;
                 var s = satSlider.value / 100;
                 var l = lightSlider.value / 100;
-                var rColor = 0, gColor = 0, bColor = 0;
+                var rC = 0, gC = 0, bC = 0;
                 var c = (1 - Math.abs(2 * l - 1)) * s;
                 var x = c * (1 - Math.abs(((h / 60) % 2) - 1));
                 var m = l - c / 2;
-                if (h < 60) { rColor = c + m; gColor = x + m; bColor = m; }
-                else if (h < 120) { rColor = x + m; gColor = c + m; bColor = m; }
-                else if (h < 180) { rColor = m; gColor = c + m; bColor = x + m; }
-                else if (h < 240) { rColor = m; gColor = x + m; bColor = c + m; }
-                else if (h < 300) { rColor = x + m; gColor = m; bColor = c + m; }
-                else { rColor = c + m; gColor = m; bColor = x + m; }
+                if (h < 60) { rC = c + m; gC = x + m; bC = m; }
+                else if (h < 120) { rC = x + m; gC = c + m; bC = m; }
+                else if (h < 180) { rC = m; gC = c + m; bC = x + m; }
+                else if (h < 240) { rC = m; gC = x + m; bC = c + m; }
+                else if (h < 300) { rC = x + m; gC = m; bC = c + m; }
+                else { rC = c + m; gC = m; bC = x + m; }
                 try {
                     var gfx = colorSwatch.graphics;
-                    if (!gfx || !gfx.newBrush) throw "no brush support";
-                    var brushType = (gfx.BrushType && gfx.BrushType.SOLID_COLOR) || 0;
-                    var brush = gfx.newBrush(brushType, [rColor, gColor, bColor]);
+                    if (!gfx || !gfx.newBrush) return;
+                    var bType = (gfx.BrushType && gfx.BrushType.SOLID_COLOR) || 0;
+                    var brush = gfx.newBrush(bType, [rC, gC, bC]);
                     if (brush) {
                         colorSwatch.graphics.backgroundColor = brush;
                         colorSwatch.graphics.disabledBackgroundColor = brush;
@@ -1047,31 +1057,15 @@
             openColorPicker(hueSlider, satSlider, lightSlider, satValue, lightValue, updateColorSwatch);
         };
 
-        // H/S/L 回调
-        hueSlider.onChanging = function() {
-            hueValue.text = Math.round(hueSlider.value).toString();
-            updateColorSwatch();
-        };
-        hueValue.onChange = function() {
-            var v = parseInt(hueValue.text);
-            if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); }
-        };
-        satSlider.onChanging = function() {
-            satValue.text = Math.round(satSlider.value).toString();
-            try { updateColorSwatch(); } catch (e) {}
-        };
-        satValue.onChange = function() {
-            var v = parseInt(satValue.text);
-            if (!isNaN(v)) satSlider.value = Math.max(0, Math.min(100, v));
-        };
-        lightSlider.onChanging = function() {
-            lightValue.text = Math.round(lightSlider.value).toString();
-            try { updateColorSwatch(); } catch (e) {}
-        };
-        lightValue.onChange = function() {
-            var v = parseInt(lightValue.text);
-            if (!isNaN(v)) lightSlider.value = Math.max(0, Math.min(100, v));
-        };
+        // 滑块回调
+        hueSlider.onChanging = function() { hueValue.text = Math.round(hueSlider.value).toString(); updateColorSwatch(); };
+        hueValue.onChange = function() { var v = parseInt(hueValue.text); if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); } };
+        satSlider.onChanging = function() { satValue.text = Math.round(satSlider.value).toString(); try { updateColorSwatch(); } catch (e) {} };
+        satValue.onChange = function() { var v = parseInt(satValue.text); if (!isNaN(v)) satSlider.value = Math.max(0, Math.min(100, v)); };
+        lightSlider.onChanging = function() { lightValue.text = Math.round(lightSlider.value).toString(); try { updateColorSwatch(); } catch (e) {} };
+        lightValue.onChange = function() { var v = parseInt(lightValue.text); if (!isNaN(v)) lightSlider.value = Math.max(0, Math.min(100, v)); };
+        hueVarSlider.onChanging = function() { hueVarValue.text = Math.round(hueVarSlider.value).toString(); };
+        hueVarValue.onChange = function() { var v = parseInt(hueVarValue.text); if (!isNaN(v)) hueVarSlider.value = Math.max(0, Math.min(360, v)); };
 
         // ==============================
         //  发射区域（模式 + 遮罩选取）
