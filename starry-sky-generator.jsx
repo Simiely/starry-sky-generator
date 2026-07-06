@@ -161,7 +161,7 @@
                 clipFile.write(reportStr);
                 clipFile.close();
                 system.callSystem('cmd.exe /c clip < "' +
-                    Folder.temp.fsName.replace(/\\/g, "\\\\") + '\\\\ae_starry_error.txt"');
+                    Folder.temp.fsName + '\\ae_starry_error.txt"');
                 alert("错误信息已复制到剪贴板！");
                 clipFile.remove();
             } catch (e2) {
