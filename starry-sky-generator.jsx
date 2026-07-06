@@ -982,9 +982,9 @@
         hueSlider.onChanging = function() { hueValue.text = Math.round(hueSlider.value).toString(); updateColorSwatch(); };
         hueValue.onChange = function() { var v = parseInt(hueValue.text); if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); } };
         satSlider.onChanging = function() { satValue.text = Math.round(satSlider.value).toString(); try { updateColorSwatch(); } catch (e) {} };
-        satValue.onChange = function() { var v = parseInt(satValue.text); if (!isNaN(v)) satSlider.value = Math.max(0, Math.min(100, v)); };
+        satValue.onChange = function() { var v = parseInt(satValue.text); if (!isNaN(v)) { satSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); } };
         lightSlider.onChanging = function() { lightValue.text = Math.round(lightSlider.value).toString(); try { updateColorSwatch(); } catch (e) {} };
-        lightValue.onChange = function() { var v = parseInt(lightValue.text); if (!isNaN(v)) lightSlider.value = Math.max(0, Math.min(100, v)); };
+        lightValue.onChange = function() { var v = parseInt(lightValue.text); if (!isNaN(v)) { lightSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); } };
         hueVarSlider.onChanging = function() { hueVarValue.text = Math.round(hueVarSlider.value).toString(); };
         hueVarValue.onChange = function() { var v = parseInt(hueVarValue.text); if (!isNaN(v)) hueVarSlider.value = Math.max(0, Math.min(360, v)); };
 
@@ -1719,8 +1719,8 @@
          * 确认后自动更新 HSL 滑块
          */
         function openColorPicker(hueSliderRef, satSliderRef, lightSliderRef, satValRef, lightValRef, updateSwatchFn) {
-            // 当前值
-            var curH = hueSliderRef.value;
+            // 当前值（UI 滑块是 0-100%，颜色选取器用 0-360°）
+            var curH = Math.round(hueSliderRef.value * 3.6);
             var curS = satSliderRef.value;
             var curL = lightSliderRef.value;
 
