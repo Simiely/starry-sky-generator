@@ -304,6 +304,7 @@
         addSliderToLayer(nullLayer, "随机种子", 42);
         // === v2.0 发射区域 + 目标吸引 ===
         addSliderToLayer(nullLayer, "吸引力", 0);
+        addSliderToLayer(nullLayer, "吸引时长", 2);
         addSliderToLayer(nullLayer, "发射密度", 100);
         return nullLayer;
     }
@@ -437,8 +438,9 @@
         p.push('var speed = random(speedMin, speedMax);');
         p.push('var driftX = Math.cos(angle) * speed * time;');
         p.push('var driftY = Math.sin(angle) * speed * time;');
-        p.push('var pullX = (tX - startX) * attraction * Math.min(1, time / 2);');
-        p.push('var pullY = (tY - startY) * attraction * Math.min(1, time / 2);');
+        p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
+        p.push('var pullX = (tX - startX) * attraction * Math.min(1, time / attractDur);');
+        p.push('var pullY = (tY - startY) * attraction * Math.min(1, time / attractDur);');
         p.push('var rawX = startX + driftX + pullX;');
         p.push('var rawY = startY + driftY + pullY;');
         p.push('var wrapX = rawX % thisComp.width;');
@@ -524,7 +526,7 @@
 
     // ==================== 粒子生成与清除 ====================
 
-    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen) {
+    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, attractDur) {
         debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
         if (shapeIdx === undefined) shapeIdx = 0;
 
@@ -565,7 +567,7 @@
                 debugLog("  offset calc error: " + e.toString());
             }
 
-            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, emitOffX, emitOffY, tOffX, tOffY);
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, emitOffX, emitOffY, tOffX, tOffY, attractDur);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
@@ -729,7 +731,7 @@
             var preset = JSON.parse(jsonStr);
             applyPresetToController(controller, preset);
             if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100);
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100, 2);
             }
         } catch (e) {
             showErrorReport("加载预设失败", e.toString(), e, e.line);
@@ -747,6 +749,7 @@
             "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
+            "吸引时长": 2,
             "发射密度": 100
         },
         "彩色星云": {
@@ -759,6 +762,7 @@
             "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
+            "吸引时长": 2,
             "发射密度": 100
         },
         "极光飘动": {
@@ -771,6 +775,7 @@
             "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
+            "吸引时长": 2,
             "发射密度": 100
         },
         "金色粒子雨": {
@@ -783,6 +788,7 @@
             "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
+            "吸引时长": 2,
             "发射密度": 100
         }
     };
@@ -1254,6 +1260,15 @@
         attractSlider.onChanging = function() { attractValue.text = Math.round(attractSlider.value) + "%"; };
         attractReset.onClick = function() { attractSlider.value = 0; attractValue.text = "0%"; };
 
+        m5.add("statictext", undefined, "时长:").preferredSize = [40, 18];
+        var attractDurSlider = m5.add("slider", undefined, 2, 0.5, 20);
+        attractDurSlider.preferredSize = [60, 20];
+        var attractDurValue = m5.add("statictext", undefined, "2s");
+        attractDurValue.preferredSize = [25, 18];
+        attractDurSlider.onChanging = function() {
+            attractDurValue.text = Math.round(attractDurSlider.value * 10) / 10 + "s";
+        };
+
         // ==============================
         //  生命周期
         // ==============================
@@ -1438,6 +1453,7 @@
                 targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
                 targetLayer: (targetLayerDrop.selection && targetLayerDrop.selection.text.indexOf("(") !== 0) ? targetLayerDrop.selection.text : "",
                 targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
+                attractDur: attractDurSlider.value,
                 attraction: Math.round(attractSlider.value)
             };
         }
@@ -1463,6 +1479,7 @@
             updateControllerSlider(controller, "随机种子", params.seed);
             // v2.0 目标吸引 + 密度
             updateControllerSlider(controller, "吸引力", params.attraction);
+            updateControllerSlider(controller, "吸引时长", params.attractDur);
             updateControllerSlider(controller, "发射密度", params.emitDen);
         }
 
@@ -1506,6 +1523,8 @@
             targetModeDrop.selection = preset["目标模式"] || 0;
             attractSlider.value = preset["吸引力"] || 0;
             attractValue.text = Math.round(attractSlider.value) + "%";
+            attractDurSlider.value = preset["吸引时长"] || 2;
+            attractDurValue.text = Math.round(attractDurSlider.value * 10) / 10 + "s";
             try { updateColorSwatch(); } catch (e) {}
         }
 
@@ -1677,7 +1696,7 @@
             debugLog("Generate: count=" + params.count + " shape=" + params.shape);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
-            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur);
             setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
         }
 
@@ -1689,7 +1708,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100);
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100, preset["吸引时长"] || 2);
             setStatus(presetName + " 已应用");
         }
 
