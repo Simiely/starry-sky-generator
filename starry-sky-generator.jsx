@@ -1834,11 +1834,8 @@
                 return [Math.round(dh), Math.round(ds * 100), Math.round(dl * 100)];
             }
 
-            // 获取初始 RGB
-            var initRGB = hslToRgbInt(curH, curS, curL);
-            var curR = initRGB[0], curG = initRGB[1], curB = initRGB[2];
-
-            var dlg = new Window("dialog", "颜色选取器 (Color Picker)");
+            // HSL 色彩选取器
+            var dlg = new Window("dialog", "颜色选取器 (HSL)");
             dlg.orientation = "column";
             dlg.alignChildren = ["fill", "top"];
             dlg.spacing = 6;
@@ -1849,69 +1846,73 @@
             previewPane.preferredSize = [200, 40];
             previewPane.alignment = ["center", "top"];
 
-            function updatePreview(rv, gv, bv) {
+            function updatePreview(h, s, l) {
                 try {
+                    var rgb = hslToRgbInt(Math.round(h), Math.round(s), Math.round(l));
                     var pgfx = previewPane.graphics;
                     if (!pgfx || !pgfx.newBrush) return;
                     var bType = (pgfx.BrushType && pgfx.BrushType.SOLID_COLOR) || 0;
-                    var pBrush = pgfx.newBrush(bType, [rv/255, gv/255, bv/255]);
+                    var pBrush = pgfx.newBrush(bType, [rgb[0]/255, rgb[1]/255, rgb[2]/255]);
                     if (pBrush) {
                         pgfx.backgroundColor = pBrush;
                         pgfx.disabledBackgroundColor = pBrush;
                     }
                 } catch (e) {}
             }
-            updatePreview(curR, curG, curB);
+            updatePreview(curH, curS, curL);
 
-            // R
-            var rGrp = dlg.add("group");
-            rGrp.orientation = "row"; rGrp.alignment = ["fill", "center"];
-            rGrp.add("statictext", undefined, "R").preferredSize = [18, 18];
-            var rSl = rGrp.add("slider", undefined, curR, 0, 255);
-            rSl.preferredSize = [120, 20];
-            var rIn = rGrp.add("edittext", undefined, curR.toString());
-            rIn.preferredSize = [55, 20]; rIn.characters = 5;
-            rSl.onChanging = function() {
-                rIn.text = Math.round(rSl.value).toString();
-                updatePreview(rSl.value, gSl.value, bSl.value);
+            // H
+            var hGrp = dlg.add("group");
+            hGrp.orientation = "row"; hGrp.alignment = ["fill", "center"];
+            hGrp.add("statictext", undefined, "H").preferredSize = [18, 18];
+            var hSl = hGrp.add("slider", undefined, curH, 0, 360);
+            hSl.preferredSize = [120, 20];
+            var hIn = hGrp.add("edittext", undefined, curH.toString());
+            hIn.preferredSize = [55, 20]; hIn.characters = 5;
+            hGrp.add("statictext", undefined, "°").preferredSize = [15, 18];
+            hSl.onChanging = function() {
+                hIn.text = Math.round(hSl.value).toString();
+                updatePreview(hSl.value, sSl.value, lSl.value);
             };
-            rIn.onChange = function() {
-                var vv = parseInt(rIn.text);
-                if (!isNaN(vv)) rSl.value = Math.max(0, Math.min(255, vv));
-            };
-
-            // G
-            var gGrp = dlg.add("group");
-            gGrp.orientation = "row"; gGrp.alignment = ["fill", "center"];
-            gGrp.add("statictext", undefined, "G").preferredSize = [18, 18];
-            var gSl = gGrp.add("slider", undefined, curG, 0, 255);
-            gSl.preferredSize = [120, 20];
-            var gIn = gGrp.add("edittext", undefined, curG.toString());
-            gIn.preferredSize = [55, 20]; gIn.characters = 5;
-            gSl.onChanging = function() {
-                gIn.text = Math.round(gSl.value).toString();
-                updatePreview(rSl.value, gSl.value, bSl.value);
-            };
-            gIn.onChange = function() {
-                var vv = parseInt(gIn.text);
-                if (!isNaN(vv)) gSl.value = Math.max(0, Math.min(255, vv));
+            hIn.onChange = function() {
+                var vv = parseInt(hIn.text);
+                if (!isNaN(vv)) hSl.value = Math.max(0, Math.min(360, vv));
             };
 
-            // B
-            var bGrp = dlg.add("group");
-            bGrp.orientation = "row"; bGrp.alignment = ["fill", "center"];
-            bGrp.add("statictext", undefined, "B").preferredSize = [18, 18];
-            var bSl = bGrp.add("slider", undefined, curB, 0, 255);
-            bSl.preferredSize = [120, 20];
-            var bIn = bGrp.add("edittext", undefined, curB.toString());
-            bIn.preferredSize = [55, 20]; bIn.characters = 5;
-            bSl.onChanging = function() {
-                bIn.text = Math.round(bSl.value).toString();
-                updatePreview(rSl.value, gSl.value, bSl.value);
+            // S
+            var sGrp = dlg.add("group");
+            sGrp.orientation = "row"; sGrp.alignment = ["fill", "center"];
+            sGrp.add("statictext", undefined, "S").preferredSize = [18, 18];
+            var sSl = sGrp.add("slider", undefined, curS, 0, 100);
+            sSl.preferredSize = [120, 20];
+            var sIn = sGrp.add("edittext", undefined, curS.toString());
+            sIn.preferredSize = [55, 20]; sIn.characters = 5;
+            sGrp.add("statictext", undefined, "%").preferredSize = [15, 18];
+            sSl.onChanging = function() {
+                sIn.text = Math.round(sSl.value).toString();
+                updatePreview(hSl.value, sSl.value, lSl.value);
             };
-            bIn.onChange = function() {
-                var vv = parseInt(bIn.text);
-                if (!isNaN(vv)) bSl.value = Math.max(0, Math.min(255, vv));
+            sIn.onChange = function() {
+                var vv = parseInt(sIn.text);
+                if (!isNaN(vv)) sSl.value = Math.max(0, Math.min(100, vv));
+            };
+
+            // L
+            var lGrp = dlg.add("group");
+            lGrp.orientation = "row"; lGrp.alignment = ["fill", "center"];
+            lGrp.add("statictext", undefined, "L").preferredSize = [18, 18];
+            var lSl = lGrp.add("slider", undefined, curL, 0, 100);
+            lSl.preferredSize = [120, 20];
+            var lIn = lGrp.add("edittext", undefined, curL.toString());
+            lIn.preferredSize = [55, 20]; lIn.characters = 5;
+            lGrp.add("statictext", undefined, "%").preferredSize = [15, 18];
+            lSl.onChanging = function() {
+                lIn.text = Math.round(lSl.value).toString();
+                updatePreview(hSl.value, sSl.value, lSl.value);
+            };
+            lIn.onChange = function() {
+                var vv = parseInt(lIn.text);
+                if (!isNaN(vv)) lSl.value = Math.max(0, Math.min(100, vv));
             };
 
             // 按钮
@@ -1922,16 +1923,14 @@
             var okBtn = btnGrp.add("button", undefined, "确定 (OK)");
             okBtn.preferredSize = [80, 26];
             okBtn.onClick = function() {
-                // 将 RGB 转换为 HSL，更新主界面滑块
-                var hsv = rgbToHslInt(Math.round(rSl.value), Math.round(gSl.value), Math.round(bSl.value));
-                hueSliderRef.value = hsv[0];
-                lightSliderRef.value = hsv[2];
-                satSliderRef.value = hsv[1];
+                // HSL 直接设置（不需要转换）
+                hueSliderRef.value = hSl.value;
+                satSliderRef.value = sSl.value;
+                lightSliderRef.value = lSl.value;
                 // 更新显示文本
-                var hh = Math.round(hueSliderRef.value).toString();
-                hueValue.text = hh;
-                satValRef.text = hsv[1] + "%";
-                lightValRef.text = hsv[2] + "%";
+                hueValue.text = Math.round(hSl.value).toString();
+                satValRef.text = Math.round(sSl.value) + "%";
+                lightValRef.text = Math.round(lSl.value) + "%";
                 // 更新颜色方块
                 try { updateSwatchFn(); } catch (e) {}
                 dlg.close();
