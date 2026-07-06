@@ -1169,7 +1169,7 @@
 
         targetModeDrop.onChange = function() {
             var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
-            m4b.visible = (idx === 1);
+            m4b.visible = (idx === 1 || idx === 2);
             m4c.visible = (idx === 2);
             updateTargetStatus();
         };
