@@ -360,13 +360,22 @@
 
         // 发射区域
         if (emitMode === 1 && emitLayer && emitMask) {
-            parts.push('var mPts = thisComp.layer("' + emitLayer + '").mask("' + emitMask + '").maskPath.vertices;');
+            parts.push('var mLayer = thisComp.layer("' + emitLayer + '");');
+            parts.push('var mPts = [];');
+            parts.push('if (mLayer) {');
+            parts.push('    var mMask = mLayer.mask("' + emitMask + '");');
+            parts.push('    if (mMask) {');
+            parts.push('        var mPath = mMask.maskPath;');
+            parts.push('        if (mPath && mPath.vertices) mPts = mPath.vertices;');
+            parts.push('    }');
+            parts.push('}');
             parts.push('var mL = 99999, mR = -99999, mT = 99999, mB = -99999;');
             parts.push('for (var vi = 0; vi < mPts.length; vi++) {');
             parts.push('    var vx = mPts[vi][0]; var vy = mPts[vi][1];');
             parts.push('    if (vx < mL) mL = vx; if (vx > mR) mR = vx;');
             parts.push('    if (vy < mT) mT = vy; if (vy > mB) mB = vy;');
             parts.push('}');
+            parts.push('if (mPts.length === 0) { mL = 0; mR = thisComp.width; mT = 0; mB = thisComp.height; }');
             parts.push('');
             parts.push('// 射线法 Point-in-Polygon + 密度控制');
             parts.push('var emitDen = ctrl.effect("发射密度")(1);');
