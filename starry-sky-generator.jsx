@@ -339,6 +339,7 @@
         addSliderToLayer(nullLayer, "吸引力", 0);
         addSliderToLayer(nullLayer, "吸引时长", 2);
         addSliderToLayer(nullLayer, "发射密度", 100);
+        addSliderToLayer(nullLayer, "发射随机偏移", 0);
         return nullLayer;
     }
 
@@ -500,7 +501,12 @@
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
         p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         p.push('var speed = random(speedMin, speedMax);');
-        p.push('var tLocal = time % eLifeDur;');
+        // 发射随机偏移：每粒子独立时间偏移，错开出生
+        p.push('var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;');
+        p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 8000, true);');
+        p.push('var timeShift = emitOff > 0 ? random(0, emitOff) : 0;');
+        p.push('var adjTime = time + timeShift;');
+        p.push('var tLocal = adjTime % eLifeDur;');
         p.push('var driftX = Math.cos(angle) * speed * tLocal;');
         p.push('var driftY = Math.sin(angle) * speed * tLocal;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
@@ -543,7 +549,10 @@
             '',
             'seedRandom(index + seedVal + 1000, true);',
             'var lifeDuration = random(lifeMin, lifeMax);',
-            'var cycleTime = time % lifeDuration;',
+            'seedRandom(index + seedVal + 8000, true);',
+            'var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;',
+            'var offTime = emitOff > 0 ? random(0, emitOff) : 0;',
+            'var cycleTime = (time + offTime) % lifeDuration;',
             '',
             'var baseOpacity = 100;',
             'if (cycleTime < fadeIn) {',
@@ -574,7 +583,10 @@
             'seedRandom(index + seedVal + 2000, true);',
             'var s = random(sizeMin, sizeMax);',
             'var dur = random(lifeMin, lifeMax);',
-            'var tLocal = time % dur;',
+            'seedRandom(index + seedVal + 8000, true);',
+            'var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;',
+            'var timeShift = emitOff > 0 ? random(0, emitOff) : 0;',
+            'var tLocal = (time + timeShift) % dur;',
             'var pct = initPct / 100 + (finlPct - initPct) / 100 * (tLocal / dur);',
             '[s * pct, s * pct];'
         ].join('\n');
@@ -820,7 +832,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100,
-            "发射密度": 100
+            "发射密度": 100, "发射随机偏移": 0
         },
         "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -834,7 +846,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 50, "最终大小%": 100,
-            "发射密度": 100
+            "发射密度": 100, "发射随机偏移": 0
         },
         "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -848,7 +860,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100,
-            "发射密度": 100
+            "发射密度": 100, "发射随机偏移": 0
         },
         "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -862,7 +874,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 30, "最终大小%": 80,
-            "发射密度": 100
+            "发射密度": 100, "发射随机偏移": 0
         }
     };
 
@@ -1443,6 +1455,15 @@
         var wrapCheck = f3.add("checkbox", undefined, "环绕 (Wrap) - 出屏幕边界后绕回对面");
         wrapCheck.value = true;
 
+        var f4 = fxGroup.add("group");
+        f4.orientation = "row"; f4.alignment = ["fill", "center"];
+        f4.add("statictext", undefined, "随机偏移:").preferredSize = [65, 18];
+        var emitOffSlider = f4.add("slider", undefined, 0, 0, 6);
+        emitOffSlider.preferredSize = [80, 20];
+        var emitOffValue = f4.add("statictext", undefined, "0s");
+        emitOffValue.preferredSize = [25, 18];
+        emitOffSlider.onChanging = function() { emitOffValue.text = Math.round(emitOffSlider.value * 10) / 10 + "s"; };
+
         // ==============================
         //  操作按钮
         // ==============================
@@ -1605,6 +1626,7 @@
                 if (p.attractDur !== undefined) { attractDurSlider.value = p.attractDur; attractDurInput.text = (Math.round(p.attractDur * 10) / 10).toString(); }
                 if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction) + "%"; }
                 if (p.wrapAround !== undefined) wrapCheck.value = p.wrapAround;
+                if (p.emitOff !== undefined) { emitOffSlider.value = p.emitOff; emitOffValue.text = Math.round(p.emitOff * 10) / 10 + "s"; }
                 try { updateColorSwatch(); } catch (e) {}
                 setStatus("已加载槽位 " + (idx + 1));
             } catch (e) {
@@ -1680,7 +1702,8 @@
                 targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
                 attractDur: parseFloat(attractDurInput.text) || 2,
                 attraction: Math.round(attractSlider.value),
-                wrapAround: wrapCheck.value
+                wrapAround: wrapCheck.value,
+                emitOff: Math.round(emitOffSlider.value * 10) / 10
             };
         }
 
@@ -1709,6 +1732,7 @@
             updateControllerSlider(controller, "发射密度", params.emitDen);
             updateControllerSlider(controller, "初始大小(%)", params.sizeInit);
             updateControllerSlider(controller, "最终大小(%)", params.sizeFinal);
+            updateControllerSlider(controller, "发射随机偏移", params.emitOff);
         }
 
             function applyPresetToUI(preset) {
