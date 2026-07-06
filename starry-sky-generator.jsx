@@ -2109,6 +2109,7 @@
         debugLog("buildUI() done");
         return panel;
     }
+}
 
     // ==================== 启动 ====================
 
@@ -2125,5 +2126,4 @@
         debugLog("CRITICAL: " + e.toString());
         showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
     }
-}
 }
