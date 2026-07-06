@@ -980,25 +980,46 @@
 
         var r2 = paramGroup.add("group");
         r2.orientation = "row"; r2.alignment = ["fill", "center"];
-        r2.add("statictext", undefined, "色相:").preferredSize = [50, 18];
-        var hueSlider = r2.add("slider", undefined, 210, 0, 360);
-        hueSlider.preferredSize = [80, 20];
-        var hueValue = r2.add("edittext", undefined, "210");
-        hueValue.preferredSize = [50, 20]; hueValue.characters = 5;
-        r2.add("statictext", undefined, "deg (角度)").preferredSize = [24, 18];
 
-        // 颜色预览方块 + 选取按钮
+        // H
+        r2.add("statictext", undefined, "H:").preferredSize = [18, 18];
+        var hueSlider = r2.add("slider", undefined, 58, 0, 100); // 210/360*100≈58
+        hueSlider.preferredSize = [60, 20];
+        var hueValue = r2.add("edittext", undefined, "58");
+        hueValue.preferredSize = [40, 20]; hueValue.characters = 3;
+        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
+
+        // S
+        r2.add("statictext", undefined, "S:").preferredSize = [18, 18];
+        var satSlider = r2.add("slider", undefined, 80, 0, 100);
+        satSlider.preferredSize = [60, 20];
+        var satValue = r2.add("edittext", undefined, "80");
+        satValue.preferredSize = [40, 20]; satValue.characters = 3;
+        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
+
+        // L
+        r2.add("statictext", undefined, "L:").preferredSize = [18, 18];
+        var lightSlider = r2.add("slider", undefined, 50, 0, 100);
+        lightSlider.preferredSize = [60, 20];
+        var lightValue = r2.add("edittext", undefined, "50");
+        lightValue.preferredSize = [40, 20]; lightValue.characters = 3;
+        r2.add("statictext", undefined, "%").preferredSize = [15, 18];
+
+        // 颜色预览方块
         var colorSwatch = r2.add("panel");
         colorSwatch.preferredSize = [18, 18];
         colorSwatch.alignment = ["center", "center"];
-        // 用 background color 渲染颜色（通过 updateColorSwatch 更新）
+        var pickBtn = r2.add("button", undefined, "\u2026");
+        pickBtn.preferredSize = [22, 20];
+        pickBtn.helpTip = "打开颜色选取器";
+
+        // HSL → RGB 颜色方块更新
         function updateColorSwatch() {
             try {
-                var h = hueSlider.value;
+                var h = hueSlider.value * 3.6; // % → 角度
                 var s = satSlider.value / 100;
                 var l = lightSlider.value / 100;
                 var rColor = 0, gColor = 0, bColor = 0;
-                // HSL → RGB
                 var c = (1 - Math.abs(2 * l - 1)) * s;
                 var x = c * (1 - Math.abs(((h / 60) % 2) - 1));
                 var m = l - c / 2;
@@ -1020,61 +1041,36 @@
                 } catch (e) {}
             } catch (e) {}
         }
-        // 初始颜色
         updateColorSwatch();
 
-        var pickBtn = r2.add("button", undefined, "\u2026");
-        pickBtn.preferredSize = [22, 20];
-        pickBtn.helpTip = "打开颜色选取器";
         pickBtn.onClick = function() {
             openColorPicker(hueSlider, satSlider, lightSlider, satValue, lightValue, updateColorSwatch);
         };
 
-        // 更新 hueSlider 回调，同步颜色方块
-        var origHueChanging = hueSlider.onChanging;
+        // H/S/L 回调
         hueSlider.onChanging = function() {
             hueValue.text = Math.round(hueSlider.value).toString();
             updateColorSwatch();
         };
-        var origHueChange = hueValue.onChange;
         hueValue.onChange = function() {
             var v = parseInt(hueValue.text);
-            if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(360, v)); updateColorSwatch(); }
+            if (!isNaN(v)) { hueSlider.value = Math.max(0, Math.min(100, v)); updateColorSwatch(); }
         };
-
-        var r3 = paramGroup.add("group");
-        r3.orientation = "row"; r3.alignment = ["fill", "center"];
-        r3.add("statictext", undefined, "色相扩散:").preferredSize = [50, 18];
-        var hueVarSlider = r3.add("slider", undefined, 30, 0, 360);
-        hueVarSlider.preferredSize = [100, 20];
-        var hueVarValue = r3.add("edittext", undefined, "30");
-        hueVarValue.preferredSize = [50, 20]; hueVarValue.characters = 5;
-        r3.add("statictext", undefined, " +/- deg (角度)").preferredSize = [55, 18];
-        hueVarSlider.onChanging = function() { hueVarValue.text = Math.round(hueVarSlider.value).toString(); };
-        hueVarValue.onChange = function() {
-            var v = parseInt(hueVarValue.text);
-            if (!isNaN(v)) hueVarSlider.value = Math.max(0, Math.min(360, v));
-        };
-
-        var r4 = paramGroup.add("group");
-        r4.orientation = "row"; r4.alignment = ["fill", "center"];
-        r4.add("statictext", undefined, "饱和度:").preferredSize = [50, 18];
-        var satSlider = r4.add("slider", undefined, 80, 0, 100);
-        satSlider.preferredSize = [50, 20];
-        var satValue = r4.add("statictext", undefined, "80%");
-        satValue.preferredSize = [30, 18];
-        r4.add("statictext", undefined, "  亮度:").preferredSize = [40, 18];
-        var lightSlider = r4.add("slider", undefined, 50, 0, 100);
-        lightSlider.preferredSize = [50, 20];
-        var lightValue = r4.add("statictext", undefined, "50%");
-        lightValue.preferredSize = [30, 18];
         satSlider.onChanging = function() {
-            satValue.text = Math.round(satSlider.value) + "%";
+            satValue.text = Math.round(satSlider.value).toString();
             try { updateColorSwatch(); } catch (e) {}
+        };
+        satValue.onChange = function() {
+            var v = parseInt(satValue.text);
+            if (!isNaN(v)) satSlider.value = Math.max(0, Math.min(100, v));
         };
         lightSlider.onChanging = function() {
-            lightValue.text = Math.round(lightSlider.value) + "%";
+            lightValue.text = Math.round(lightSlider.value).toString();
             try { updateColorSwatch(); } catch (e) {}
+        };
+        lightValue.onChange = function() {
+            var v = parseInt(lightValue.text);
+            if (!isNaN(v)) lightSlider.value = Math.max(0, Math.min(100, v));
         };
 
         // ==============================
@@ -1636,10 +1632,10 @@
                 if (p.sizeInit !== undefined)   sizeInitInput.text = p.sizeInit.toString();
                 if (p.sizeFinal !== undefined)  sizeFinalInput.text = p.sizeFinal.toString();
                 if (p.shape !== undefined)      shapeDropdown.selection = p.shape;
-                if (p.hue !== undefined)        { hueSlider.value = p.hue; hueValue.text = Math.round(p.hue).toString(); }
+                if (p.hue !== undefined)        { hueSlider.value = Math.round(p.hue / 3.6); hueValue.text = Math.round(p.hue / 3.6).toString(); }
                 if (p.hueVar !== undefined)     { hueVarSlider.value = p.hueVar; hueVarValue.text = Math.round(p.hueVar).toString(); }
-                if (p.sat !== undefined)        { satSlider.value = p.sat; satValue.text = Math.round(p.sat) + "%"; }
-                if (p.light !== undefined)      { lightSlider.value = p.light; lightValue.text = Math.round(p.light) + "%"; }
+                if (p.sat !== undefined)        { satSlider.value = p.sat; satValue.text = Math.round(p.sat).toString(); }
+                if (p.light !== undefined)      { lightSlider.value = p.light; lightValue.text = Math.round(p.light).toString(); }
                 if (p.direction !== undefined)  { dirSlider.value = p.direction; dirValue.text = Math.round(p.direction).toString(); }
                 if (p.dirSpread !== undefined)  { spreadSlider.value = p.dirSpread; spreadValue.text = Math.round(p.dirSpread).toString(); }
                 if (p.speedMin !== undefined)   speedMinInput.text = p.speedMin.toString();
@@ -1691,7 +1687,7 @@
                 sizeInit: parseFloat(sizeInitInput.text) || 80,
                 sizeFinal: parseFloat(sizeFinalInput.text) || 100,
                 shape: shapeDropdown.selection ? shapeDropdown.selection.index : 0,
-                hue: Math.round(hueSlider.value),
+                hue: Math.round(hueSlider.value * 3.6), // % → 0-360
                 hueVar: Math.round(hueVarSlider.value),
                 sat: Math.round(satSlider.value),
                 light: Math.round(lightSlider.value),
@@ -1757,14 +1753,14 @@
             sizeFinalInput.text = (preset["最终大小%"] || 100).toString();
             var sv = preset["形状"];
             if (sv !== undefined) shapeDropdown.selection = sv;
-            hueSlider.value = preset["色相(0-360)"] || 210;
+            hueSlider.value = Math.round((preset["色相(0-360)"] || 210) / 3.6);
             hueValue.text = Math.round(hueSlider.value).toString();
             hueVarSlider.value = preset["色相随机范围"] || 30;
             hueVarValue.text = Math.round(hueVarSlider.value).toString();
             satSlider.value = preset["饱和度"] || 80;
-            satValue.text = Math.round(satSlider.value) + "%";
+            satValue.text = Math.round(satSlider.value).toString();
             lightSlider.value = preset["亮度"] || 50;
-            lightValue.text = Math.round(lightSlider.value) + "%";
+            lightValue.text = Math.round(lightSlider.value).toString();
             dirSlider.value = preset["运动方向(度)"] || 270;
             dirValue.text = Math.round(dirSlider.value).toString();
             spreadSlider.value = preset["方向随机范围"] || 180;
@@ -1935,13 +1931,13 @@
             okBtn.preferredSize = [80, 26];
             okBtn.onClick = function() {
                 // HSL 直接设置（不需要转换）
-                hueSliderRef.value = hSl.value;
+                hueSliderRef.value = Math.round(hSl.value / 3.6);
                 satSliderRef.value = sSl.value;
                 lightSliderRef.value = lSl.value;
                 // 更新显示文本
-                hueValue.text = Math.round(hSl.value).toString();
-                satValRef.text = Math.round(sSl.value) + "%";
-                lightValRef.text = Math.round(lSl.value) + "%";
+                hueValue.text = Math.round(hSl.value / 3.6).toString();
+                satValRef.text = Math.round(sSl.value).toString();
+                lightValRef.text = Math.round(lSl.value).toString();
                 // 更新颜色方块
                 try { updateSwatchFn(); } catch (e) {}
                 dlg.close();
