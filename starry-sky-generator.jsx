@@ -387,7 +387,7 @@
             parts.push('}');
             parts.push('');
             parts.push('// 射线法 Point-in-Polygon + 密度控制');
-            parts.push('var emitDen = ctrl.effect("发射密度") ? ctrl.effect("发射密度")(1) : 100;');
+            parts.push('var emitDen = ctrl.effect("发射密度") ? ctrl.effect("发射密度") ? ctrl.effect("发射密度")(1) : 100 : 100;');
             parts.push('function ptInPoly(px, py, pts) {');
             parts.push('    var ins = false;');
             parts.push('    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {');
@@ -410,16 +410,16 @@
         }
 
         parts.push('');
-        parts.push('var dirBase = ctrl.effect("运动方向(度)")(1);');
-        parts.push('var dirSpread = ctrl.effect("方向随机范围")(1);');
-        parts.push('var speedMin = ctrl.effect("最小速度")(1);');
-        parts.push('var speedMax = ctrl.effect("最大速度")(1);');
+        parts.push('var dirBase = ctrl.effect("运动方向(度)") ? ctrl.effect("运动方向(度)")(1) : 270;');
+        parts.push('var dirSpread = ctrl.effect("方向随机范围") ? ctrl.effect("方向随机范围")(1) : 180;');
+        parts.push('var speedMin = ctrl.effect("最小速度") ? ctrl.effect("最小速度")(1) : 30;');
+        parts.push('var speedMax = ctrl.effect("最大速度") ? ctrl.effect("最大速度")(1) : 100;');
 
         if (targetMode === 1 && targetLayer) {
             parts.push('');
             parts.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
             parts.push('var tX = tPos[0], tY = tPos[1];');
-            parts.push('var attraction = ctrl.effect("吸引力")(1) / 100;');
+            parts.push('var attraction = ctrl.effect("吸引力") ? ctrl.effect("吸引力")(1) : 0 / 100;');
         } else if (targetMode === 2 && targetLayer && targetMask) {
             parts.push('');
             parts.push('var tLayer = thisComp.layer("' + targetLayer + '");');
@@ -446,7 +446,7 @@
             parts.push('seedRandom(index + seedVal + 5000, true);');
             parts.push('var tX = tOffX + random(tML, tMR);');
             parts.push('var tY = tOffY + random(tMT, tMB);');
-            parts.push('var attraction = ctrl.effect("吸引力")(1) / 100;');
+            parts.push('var attraction = ctrl.effect("吸引力") ? ctrl.effect("吸引力")(1) : 0 / 100;');
         } else {
             parts.push('');
             parts.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
@@ -454,7 +454,7 @@
         }
 
         parts.push('');
-        parts.push('var seedVal = ctrl.effect("随机种子")(1);');
+        parts.push('var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;');
         parts.push('seedRandom(index + seedVal, true);');
         parts.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         parts.push('var speed = random(speedMin, speedMax);');
@@ -477,13 +477,13 @@
             'seedRandom(index, true);',
             '',
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
-            'var lifeMin = ctrl.effect("最小生命周期(秒)")(1);',
-            'var lifeMax = ctrl.effect("最大生命周期(秒)")(1);',
-            'var fadeIn = ctrl.effect("淡入时长(秒)")(1);',
-            'var fadeOut = ctrl.effect("淡出时长(秒)")(1);',
-            'var twinkleStrength = ctrl.effect("闪烁强度")(1);',
-            'var twinkleSpeed = ctrl.effect("闪烁速度")(1);',
-            'var seedVal = ctrl.effect("随机种子")(1);',
+            'var lifeMin = ctrl.effect("最小生命周期(秒)") ? ctrl.effect("最小生命周期(秒)")(1) : 2;',
+            'var lifeMax = ctrl.effect("最大生命周期(秒)") ? ctrl.effect("最大生命周期(秒)")(1) : 6;',
+            'var fadeIn = ctrl.effect("淡入时长(秒)") ? ctrl.effect("淡入时长(秒)")(1) : 0.3;',
+            'var fadeOut = ctrl.effect("淡出时长(秒)") ? ctrl.effect("淡出时长(秒)")(1) : 0.8;',
+            'var twinkleStrength = ctrl.effect("闪烁强度") ? ctrl.effect("闪烁强度")(1) : 20;',
+            'var twinkleSpeed = ctrl.effect("闪烁速度") ? ctrl.effect("闪烁速度")(1) : 2;',
+            'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             '',
             'seedRandom(index + seedVal + 1000, true);',
             'var lifeDuration = random(lifeMin, lifeMax);',
@@ -508,9 +508,9 @@
         return [
             'seedRandom(index, true);',
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
-            'var sizeMin = ctrl.effect("最小尺寸")(1);',
-            'var sizeMax = ctrl.effect("最大尺寸")(1);',
-            'var seedVal = ctrl.effect("随机种子")(1);',
+            'var sizeMin = ctrl.effect("最小尺寸") ? ctrl.effect("最小尺寸")(1) : 3;',
+            'var sizeMax = ctrl.effect("最大尺寸") ? ctrl.effect("最大尺寸")(1) : 15;',
+            'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             'seedRandom(index + seedVal + 2000, true);',
             'var s = random(sizeMin, sizeMax);',
             '[s, s];'
@@ -521,11 +521,11 @@
         return [
             'seedRandom(index, true);',
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
-            'var hueBase = ctrl.effect("色相(0-360)")(1);',
-            'var hueVar = ctrl.effect("色相随机范围")(1);',
-            'var sat = ctrl.effect("饱和度")(1);',
-            'var light = ctrl.effect("亮度")(1);',
-            'var seedVal = ctrl.effect("随机种子")(1);',
+            'var hueBase = ctrl.effect("色相(0-360)") ? ctrl.effect("色相(0-360)")(1) : 210;',
+            'var hueVar = ctrl.effect("色相随机范围") ? ctrl.effect("色相随机范围")(1) : 30;',
+            'var sat = ctrl.effect("饱和度") ? ctrl.effect("饱和度")(1) : 80;',
+            'var light = ctrl.effect("亮度") ? ctrl.effect("亮度")(1) : 90;',
+            'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             '',
             'seedRandom(index + seedVal + 3000, true);',
             'var h = hueBase + random(-hueVar/2, hueVar/2);',
