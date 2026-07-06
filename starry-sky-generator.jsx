@@ -1561,16 +1561,16 @@
             var row = slotPanel.add("group");
             row.orientation = "row"; row.alignment = ["fill", "center"]; row.spacing = 3;
 
-            var saveBtn = row.add("button", undefined, "存储 " + (si + 1));
-            saveBtn.preferredSize = [-1, 22];
+            var slotSaveBtn = row.add("button", undefined, "存储 " + (si + 1));
+            slotSaveBtn.preferredSize = [-1, 22];
 
-            var loadBtn = row.add("button", undefined, "使用 " + (si + 1));
-            loadBtn.preferredSize = [-1, 22];
+            var slotLoadBtn = row.add("button", undefined, "使用 " + (si + 1));
+            slotLoadBtn.preferredSize = [-1, 22];
 
             var status = row.add("statictext", undefined, "(空)");
             status.preferredSize = [45, 16];
 
-            slotRows.push({ save: saveBtn, load: loadBtn, status: status, idx: si });
+            slotRows.push({ save: slotSaveBtn, load: slotLoadBtn, status: status, idx: si });
         }
 
         // 槽位管理按钮
