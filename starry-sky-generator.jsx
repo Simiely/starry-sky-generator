@@ -888,9 +888,8 @@
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
-        panel.spacing = 6;
-        panel.margins = [10, 10, 10, 10];
-        panel.autoscroll = true;
+        panel.spacing = 3;
+        panel.margins = [6, 6, 6, 6];
 
         // ===== 标题 =====
         var titleRow = panel.add("group");
@@ -925,8 +924,8 @@
         paramGroup.text = " 粒子参数 ";
         paramGroup.orientation = "column";
         paramGroup.alignChildren = ["fill", "top"];
-        paramGroup.spacing = 4;
-        paramGroup.margins = [8, 14, 8, 8];
+        paramGroup.spacing = 2;
+        paramGroup.margins = [4, 10, 4, 4];
 
         var r1 = paramGroup.add("group");
         r1.orientation = "row"; r1.alignment = ["fill", "center"];
@@ -1074,8 +1073,8 @@
         emitGroup.text = " 发射区域 (Emit Zone)";
         emitGroup.orientation = "column";
         emitGroup.alignChildren = ["fill", "top"];
-        emitGroup.spacing = 4;
-        emitGroup.margins = [8, 14, 8, 8];
+        emitGroup.spacing = 2;
+        emitGroup.margins = [4, 10, 4, 4];
 
         var ee1 = emitGroup.add("group");
         ee1.orientation = "row"; ee1.alignment = ["fill", "center"];
@@ -1202,8 +1201,8 @@
         motionGroup.text = " 运动控制 ";
         motionGroup.orientation = "column";
         motionGroup.alignChildren = ["fill", "top"];
-        motionGroup.spacing = 4;
-        motionGroup.margins = [8, 14, 8, 8];
+        motionGroup.spacing = 2;
+        motionGroup.margins = [4, 10, 4, 4];
 
         var m1 = motionGroup.add("group");
         m1.orientation = "row"; m1.alignment = ["fill", "center"];
@@ -1380,8 +1379,8 @@
         lifeGroup.text = " 生命周期 ";
         lifeGroup.orientation = "column";
         lifeGroup.alignChildren = ["fill", "top"];
-        lifeGroup.spacing = 4;
-        lifeGroup.margins = [8, 14, 8, 8];
+        lifeGroup.spacing = 2;
+        lifeGroup.margins = [4, 10, 4, 4];
 
         var l1 = lifeGroup.add("group");
         l1.orientation = "row"; l1.alignment = ["fill", "center"];
@@ -1410,8 +1409,8 @@
         fxGroup.text = " 高级效果 ";
         fxGroup.orientation = "column";
         fxGroup.alignChildren = ["fill", "top"];
-        fxGroup.spacing = 4;
-        fxGroup.margins = [8, 14, 8, 8];
+        fxGroup.spacing = 2;
+        fxGroup.margins = [4, 10, 4, 4];
 
         var f1 = fxGroup.add("group");
         f1.orientation = "row"; f1.alignment = ["fill", "center"];
@@ -1473,7 +1472,7 @@
         btnPanel.orientation = "column";
         btnPanel.alignChildren = ["fill", "top"];
         btnPanel.spacing = 6;
-        btnPanel.margins = [8, 14, 8, 10];
+        btnPanel.margins = [4, 10, 4, 6];
 
         var generateBtn = btnPanel.add("button", undefined, "▶  生成粒子");
         generateBtn.preferredSize = [-1, 32];
@@ -1499,8 +1498,8 @@
         presetPanel.text = " 快捷预设 ";
         presetPanel.orientation = "column";
         presetPanel.alignChildren = ["fill", "top"];
-        presetPanel.spacing = 4;
-        presetPanel.margins = [8, 14, 8, 10];
+        presetPanel.spacing = 2;
+        presetPanel.margins = [4, 10, 4, 6];
 
         var presetRow1 = presetPanel.add("group");
         presetRow1.orientation = "row"; presetRow1.alignment = ["fill", "center"];
@@ -1541,8 +1540,8 @@
         slotPanel.text = " 槽位预设 (Slot Preset) ";
         slotPanel.orientation = "column";
         slotPanel.alignChildren = ["fill", "top"];
-        slotPanel.spacing = 3;
-        slotPanel.margins = [8, 14, 8, 8];
+        slotPanel.spacing = 2;
+        slotPanel.margins = [4, 10, 4, 4];
 
         // 4 行存储/读取按钮对
         var SLOT_KEYS = ["Slot1", "Slot2", "Slot3", "Slot4"];
@@ -2022,17 +2021,52 @@
 
         saveBtn.onClick = function() {
             safeExecute("保存预设", function() {
-                var comp = getActiveComp();
-                if (!comp) { alert("请先打开合成！"); return; }
-                showSlotPicker("save");
+                try {
+                    var defaultName = "starfield_presets.json";
+                    var saveFile = File.saveDialog("保存预设文件到", "JSON:*.json", defaultName);
+                    if (!saveFile) return;
+                    var fileData = { version: "2.0", slots: {} };
+                    for (var si = 0; si < 4; si++) {
+                        var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
+                        fileData.slots[SLOT_KEYS[si]] = js || "";
+                    }
+                    saveFile.encoding = "UTF-8";
+                    saveFile.open("w");
+                    saveFile.write(JSON.stringify(fileData, null, 2));
+                    saveFile.close();
+                    alert("已保存 4 个槽位到:\n" + saveFile.fsName);
+                    setStatus("已保存预设文件");
+                } catch (e) {
+                    alert("保存失败: " + e.toString());
+                }
             });
         };
 
         loadBtn.onClick = function() {
             safeExecute("加载预设", function() {
-                var comp = getActiveComp();
-                if (!comp) { alert("请先打开合成！"); return; }
-                showSlotPicker("load");
+                try {
+                    var loadFile = File.openDialog("选择预设文件", "JSON:*.json");
+                    if (!loadFile) return;
+                    loadFile.encoding = "UTF-8";
+                    loadFile.open("r");
+                    var jsonStr = loadFile.read();
+                    loadFile.close();
+                    var fileData = JSON.parse(jsonStr);
+                    if (!fileData.slots) { alert("无效的预设文件"); return; }
+                    var loaded = 0;
+                    for (var si = 0; si < 4; si++) {
+                        var key = SLOT_KEYS[si];
+                        if (fileData.slots[key]) {
+                            app.settings.saveSetting("StarrySkyGenerator", key, fileData.slots[key]);
+                            loaded++;
+                        }
+                    }
+                    updateSlotStatus();
+                    alert("已加载 " + loaded + " 个槽位预设。");
+                    setStatus("已加载预设文件");
+                } catch (e) {
+                    alert("加载失败: " + e.toString());
+                }
             });
         };
 
