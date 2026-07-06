@@ -1512,19 +1512,15 @@
 
         var presetRow1 = presetPanel.add("group");
         presetRow1.orientation = "row"; presetRow1.alignment = ["fill", "center"];
-        presetRow1.alignChildren = ["fill", "center"]; presetRow1.spacing = 3;
+        presetRow1.alignChildren = ["fill", "center"]; presetRow1.spacing = 2;
         var preset1Btn = presetRow1.add("button", undefined, "经典星空");
-        preset1Btn.preferredSize = [-1, 24];
+        preset1Btn.preferredSize = [-1, 20];
         var preset2Btn = presetRow1.add("button", undefined, "彩色星云");
-        preset2Btn.preferredSize = [-1, 24];
-
-        var presetRow2 = presetPanel.add("group");
-        presetRow2.orientation = "row"; presetRow2.alignment = ["fill", "center"];
-        presetRow2.alignChildren = ["fill", "center"]; presetRow2.spacing = 3;
-        var preset3Btn = presetRow2.add("button", undefined, "极光飘动");
-        preset3Btn.preferredSize = [-1, 24];
-        var preset4Btn = presetRow2.add("button", undefined, "金色粒子雨");
-        preset4Btn.preferredSize = [-1, 24];
+        preset2Btn.preferredSize = [-1, 20];
+        var preset3Btn = presetRow1.add("button", undefined, "极光飘动");
+        preset3Btn.preferredSize = [-1, 20];
+        var preset4Btn = presetRow1.add("button", undefined, "金色粒子雨");
+        preset4Btn.preferredSize = [-1, 20];
 
         // 预设粒子数量（独立滑块）
         var presetCountRow = presetPanel.add("group");
@@ -1552,28 +1548,50 @@
         slotPanel.spacing = 2;
         slotPanel.margins = [4, 10, 4, 4];
 
-        // 4 行存储/读取按钮对
+        // 4 槽位存储/使用
         var SLOT_KEYS = ["Slot1", "Slot2", "Slot3", "Slot4"];
-        var slotRows = [];
-        var slotStatus = [];
+        var slotLoadBtns = [];
+        var slotSaveBtns = [];
 
+        // 存储预设行
+        var slotSaveRow = slotPanel.add("group");
+        slotSaveRow.orientation = "row"; slotSaveRow.alignment = ["fill", "center"]; slotSaveRow.spacing = 2;
+        slotSaveRow.add("statictext", undefined, "存储预设:").preferredSize = [60, 18];
         for (var si = 0; si < 4; si++) {
-            var row = slotPanel.add("group");
-            row.orientation = "row"; row.alignment = ["fill", "center"]; row.spacing = 3;
-
-            var slotSaveBtn = row.add("button", undefined, "存储 " + (si + 1));
-            slotSaveBtn.preferredSize = [-1, 22];
-
-            var slotLoadBtn = row.add("button", undefined, "使用 " + (si + 1));
-            slotLoadBtn.preferredSize = [-1, 22];
-
-            var status = row.add("statictext", undefined, "(空)");
-            status.preferredSize = [45, 16];
-
-            slotRows.push({ save: slotSaveBtn, load: slotLoadBtn, status: status, idx: si });
+            (function(idx) {
+                var btn = slotSaveRow.add("button", undefined, String(idx + 1));
+                btn.preferredSize = [36, 22];
+                btn.onClick = function() { saveSlot(idx); updateSlotBtnState(); };
+                slotSaveBtns.push(btn);
+            })(si);
         }
 
-        // 槽位管理按钮
+        // 使用预设行
+        var slotLoadRow = slotPanel.add("group");
+        slotLoadRow.orientation = "row"; slotLoadRow.alignment = ["fill", "center"]; slotLoadRow.spacing = 2;
+        slotLoadRow.add("statictext", undefined, "使用预设:").preferredSize = [60, 18];
+        for (var si = 0; si < 4; si++) {
+            (function(idx) {
+                var btn = slotLoadRow.add("button", undefined, String(idx + 1));
+                btn.preferredSize = [36, 22];
+                btn.onClick = function() { loadSlot(idx); };
+                slotLoadBtns.push(btn);
+            })(si);
+        }
+
+        // 更新按钮状态（有预设可点，无预设灰色）
+        function updateSlotBtnState() {
+            for (var si = 0; si < 4; si++) {
+                try {
+                    var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
+                    slotLoadBtns[si].enabled = (js && js !== "");
+                } catch (e) {
+                    slotLoadBtns[si].enabled = false;
+                }
+            }
+        }
+
+        // 清空所有槽位
         var slotBtnRow = slotPanel.add("group");
         slotBtnRow.orientation = "row"; slotBtnRow.alignment = ["fill", "center"]; slotBtnRow.spacing = 4;
         var clearAllSlotBtn = slotBtnRow.add("button", undefined, "清空所有槽位");
@@ -1585,7 +1603,6 @@
                 var params = getUIParams();
                 var jsonStr = JSON.stringify(params, null, 2);
                 app.settings.saveSetting("StarrySkyGenerator", SLOT_KEYS[idx], jsonStr);
-                slotRows[idx].status.text = "\u2713";
             } catch (e) {
                 debugLog("saveSlot error: " + e.toString());
             }
@@ -1640,38 +1657,20 @@
             }
         }
 
-        // 更新槽位状态显示
-        function updateSlotStatus() {
-            for (var si = 0; si < 4; si++) {
-                try {
-                    var jsonStr = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
-                    slotRows[si].status.text = (jsonStr && jsonStr !== "") ? "\u2713" : "(空)";
-                } catch (e) {
-                    slotRows[si].status.text = "?";
-                }
-            }
-        }
-
         // 清空所有槽位
         clearAllSlotBtn.onClick = function() {
             if (!confirm("确定清空所有 4 个槽位预设？")) return;
             for (var si = 0; si < 4; si++) {
                 try { app.settings.saveSetting("StarrySkyGenerator", SLOT_KEYS[si], ""); } catch (e) {}
             }
-            updateSlotStatus();
+            updateSlotBtnState();
             setStatus("所有槽位已清空");
         };
 
         // 绑定存储/使用按钮
         for (var si = 0; si < 4; si++) {
-            (function(slotIdx) {
-                slotRows[slotIdx].save.onClick = function() { saveSlot(slotIdx); updateSlotStatus(); setStatus("已存储槽位 " + (slotIdx + 1)); };
-                slotRows[slotIdx].load.onClick = function() { loadSlot(slotIdx); };
-            })(si);
-        }
-
-        // 初始化状态
-        updateSlotStatus();
+        // 初始化槽位按钮状态
+        updateSlotBtnState();
 
         function getUIParams() {
             return {
@@ -2011,7 +2010,7 @@
                             dlg.close();
                             if (mode === "save") {
                                 saveSlot(idx);
-                                updateSlotStatus();
+                                updateSlotBtnState();
                                 setStatus("已保存到槽位 " + (idx + 1));
                             } else {
                                 loadSlot(idx);
@@ -2074,7 +2073,7 @@
                             loaded++;
                         }
                     }
-                    updateSlotStatus();
+                    updateSlotBtnState();
                     alert("已加载 " + loaded + " 个槽位预设。");
                     setStatus("已加载预设文件");
                 } catch (e) {
