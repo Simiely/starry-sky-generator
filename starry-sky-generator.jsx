@@ -2126,4 +2126,4 @@
         showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
     }
 }
-})();
+}).call(this);
