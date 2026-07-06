@@ -354,123 +354,109 @@
 
     function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density) {
         if (density === undefined) density = 100;
-        var parts = ['try {', 'seedRandom(index, true);', ''];
-        parts.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
-        parts.push('');
+        var p = []; // short alias
 
-        // 发射区域
+        function fx(name, def) { return 'ctrl.effect("' + name + '") ? ctrl.effect("' + name + '")(1) : ' + def; }
+
+        p.push('seedRandom(index, true);');
+        p.push('');
+        p.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
+        p.push('');
+
+        // ===== 发射区域 =====
         if (emitMode === 1 && emitLayer && emitMask) {
-            parts.push('var mLayer = thisComp.layer("' + emitLayer + '");');
-            parts.push('var mPts = [];');
-            parts.push('if (mLayer) {');
-            parts.push('    var mMask = mLayer.mask("' + emitMask + '");');
-            parts.push('    if (mMask) {');
-            parts.push('        var mPath = mMask.maskPath;');
-            parts.push('        if (mPath && mPath.vertices) mPts = mPath.vertices;');
-            parts.push('    }');
-            parts.push('}');
-            parts.push('var mL = 99999, mR = -99999, mT = 99999, mB = -99999;');
-            parts.push('for (var vi = 0; vi < mPts.length; vi++) {');
-            parts.push('    var vx = mPts[vi][0]; var vy = mPts[vi][1];');
-            parts.push('    if (vx < mL) mL = vx; if (vx > mR) mR = vx;');
-            parts.push('    if (vy < mT) mT = vy; if (vy > mB) mB = vy;');
-            parts.push('}');
-            parts.push('if (mPts.length === 0) { mL = 0; mR = thisComp.width; mT = 0; mB = thisComp.height; }');
-            parts.push('');
-            parts.push('// 图层偏移（遮罩坐标 → 合成坐标）');
-            parts.push('var offX = 0, offY = 0;');
-            parts.push('if (mLayer) {');
-            parts.push('    var lPos = mLayer.transform.position;');
-            parts.push('    var lAnc = mLayer.transform.anchorPoint;');
-            parts.push('    offX = lPos[0] - lAnc[0];');
-            parts.push('    offY = lPos[1] - lAnc[1];');
-            parts.push('}');
-            parts.push('');
-            parts.push('// 射线法 Point-in-Polygon + 密度控制');
-            parts.push('var emitDen = ctrl.effect("发射密度") ? ctrl.effect("发射密度") ? ctrl.effect("发射密度")(1) : 100 : 100;');
-            parts.push('function ptInPoly(px, py, pts) {');
-            parts.push('    var ins = false;');
-            parts.push('    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {');
-            parts.push('        var xi = pts[i][0], yi = pts[i][1];');
-            parts.push('        var xj = pts[j][0], yj = pts[j][1];');
-            parts.push('        if ((yi > py) != (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) ins = !ins;');
-            parts.push('    }');
-            parts.push('    return ins;');
-            parts.push('}');
-            parts.push('var startX = offX + mL, startY = offY + mT, found = false;');
-            parts.push('for (var att = 0; att < 100; att++) {');
-            parts.push('    var tx = random(mL, mR); var ty = random(mT, mB);');
-            parts.push('    if (ptInPoly(tx, ty, mPts) && random(0, 100) < emitDen) {');
-            parts.push('        startX = offX + tx; startY = offY + ty; found = true; break;');
-            parts.push('    }');
-            parts.push('}');
+            p.push('var eLayer = thisComp.layer("' + emitLayer + '");');
+            p.push('var ePts = [];');
+            p.push('if (eLayer) {');
+            p.push('    var eMask = eLayer.mask("' + emitMask + '");');
+            p.push('    if (eMask) {');
+            p.push('        var ePath = eMask.maskPath;');
+            p.push('        if (ePath && ePath.vertices) ePts = ePath.vertices;');
+            p.push('    }');
+            p.push('}');
+            p.push('var eL = 99999, eR = -99999, eT = 99999, eB = -99999;');
+            p.push('for (var vi = 0; vi < ePts.length; vi++) {');
+            p.push('    var vx = ePts[vi][0], vy = ePts[vi][1];');
+            p.push('    if (vx < eL) eL = vx; if (vx > eR) eR = vx;');
+            p.push('    if (vy < eT) eT = vy; if (vy > eB) eB = vy;');
+            p.push('}');
+            p.push('if (ePts.length === 0) { eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; }');
+            p.push('var eOffX = 0, eOffY = 0;');
+            p.push('if (eLayer) {');
+            p.push('    eOffX = eLayer.transform.position[0] - eLayer.transform.anchorPoint[0];');
+            p.push('    eOffY = eLayer.transform.position[1] - eLayer.transform.anchorPoint[1];');
+            p.push('}');
+            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
+            p.push('var startX = eOffX + random(eL, eR);');
+            p.push('var startY = eOffY + random(eT, eB);');
         } else {
-            parts.push('var startX = random(0, thisComp.width);');
-            parts.push('var startY = random(0, thisComp.height);');
+            p.push('var startX = random(0, thisComp.width);');
+            p.push('var startY = random(0, thisComp.height);');
         }
 
-        parts.push('');
-        parts.push('var dirBase = ctrl.effect("运动方向(度)") ? ctrl.effect("运动方向(度)")(1) : 270;');
-        parts.push('var dirSpread = ctrl.effect("方向随机范围") ? ctrl.effect("方向随机范围")(1) : 180;');
-        parts.push('var speedMin = ctrl.effect("最小速度") ? ctrl.effect("最小速度")(1) : 30;');
-        parts.push('var speedMax = ctrl.effect("最大速度") ? ctrl.effect("最大速度")(1) : 100;');
+        // ===== 运动控制 =====
+        p.push('');
+        p.push('var dirBase = ' + fx('运动方向(度)', 270) + ';');
+        p.push('var dirSpread = ' + fx('方向随机范围', 180) + ';');
+        p.push('var speedMin = ' + fx('最小速度', 30) + ';');
+        p.push('var speedMax = ' + fx('最大速度', 100) + ';');
 
+        // ===== 目标吸引 =====
         if (targetMode === 1 && targetLayer) {
-            parts.push('');
-            parts.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
-            parts.push('var tX = tPos[0], tY = tPos[1];');
-            parts.push('var attraction = ctrl.effect("吸引力") ? ctrl.effect("吸引力")(1) : 0 / 100;');
+            p.push('');
+            p.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
+            p.push('var tX = tPos[0], tY = tPos[1];');
+            p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
         } else if (targetMode === 2 && targetLayer && targetMask) {
-            parts.push('');
-            parts.push('var tLayer = thisComp.layer("' + targetLayer + '");');
-            parts.push('var tMPts = [];');
-            parts.push('if (tLayer) {');
-            parts.push('    var tMMask = tLayer.mask("' + targetMask + '");');
-            parts.push('    if (tMMask) {');
-            parts.push('        var tMPath = tMMask.maskPath;');
-            parts.push('        if (tMPath && tMPath.vertices) tMPts = tMPath.vertices;');
-            parts.push('    }');
-            parts.push('}');
-            parts.push('var tOffX = 0, tOffY = 0;');
-            parts.push('if (tLayer) {');
-            parts.push('    tOffX = tLayer.transform.position[0] - tLayer.transform.anchorPoint[0];');
-            parts.push('    tOffY = tLayer.transform.position[1] - tLayer.transform.anchorPoint[1];');
-            parts.push('}');
-            parts.push('var tML = 99999, tMR = -99999, tMT = 99999, tMB = -99999;');
-            parts.push('for (var tvi = 0; tvi < tMPts.length; tvi++) {');
-            parts.push('    var tvx = tMPts[tvi][0], tvy = tMPts[tvi][1];');
-            parts.push('    if (tvx < tML) tML = tvx; if (tvx > tMR) tMR = tvx;');
-            parts.push('    if (tvy < tMT) tMT = tvy; if (tvy > tMB) tMB = tvy;');
-            parts.push('}');
-            parts.push('if (tMPts.length === 0) { tML = 0; tMR = 100; tMT = 0; tMB = 100; }');
-            parts.push('seedRandom(index + seedVal + 5000, true);');
-            parts.push('var tX = tOffX + random(tML, tMR);');
-            parts.push('var tY = tOffY + random(tMT, tMB);');
-            parts.push('var attraction = ctrl.effect("吸引力") ? ctrl.effect("吸引力")(1) : 0 / 100;');
+            p.push('');
+            p.push('var tLayer = thisComp.layer("' + targetLayer + '");');
+            p.push('var tPts = [];');
+            p.push('if (tLayer) {');
+            p.push('    var tMask = tLayer.mask("' + targetMask + '");');
+            p.push('    if (tMask) {');
+            p.push('        var tPath = tMask.maskPath;');
+            p.push('        if (tPath && tPath.vertices) tPts = tPath.vertices;');
+            p.push('    }');
+            p.push('}');
+            p.push('var tL = 99999, tR = -99999, tT = 99999, tB = -99999;');
+            p.push('for (var tvi = 0; tvi < tPts.length; tvi++) {');
+            p.push('    var tvx = tPts[tvi][0], tvy = tPts[tvi][1];');
+            p.push('    if (tvx < tL) tL = tvx; if (tvx > tR) tR = tvx;');
+            p.push('    if (tvy < tT) tT = tvy; if (tvy > tB) tB = tvy;');
+            p.push('}');
+            p.push('if (tPts.length === 0) { tL = 0; tR = 100; tT = 0; tB = 100; }');
+            p.push('var tOffX = 0, tOffY = 0;');
+            p.push('if (tLayer) {');
+            p.push('    tOffX = tLayer.transform.position[0] - tLayer.transform.anchorPoint[0];');
+            p.push('    tOffY = tLayer.transform.position[1] - tLayer.transform.anchorPoint[1];');
+            p.push('}');
+            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
+            p.push('var tX = tOffX + random(tL, tR);');
+            p.push('var tY = tOffY + random(tT, tB);');
+            p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
         } else {
-            parts.push('');
-            parts.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
-            parts.push('var attraction = 0;');
+            p.push('');
+            p.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
+            p.push('var attraction = 0;');
         }
 
-        parts.push('');
-        parts.push('var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;');
-        parts.push('seedRandom(index + seedVal, true);');
-        parts.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
-        parts.push('var speed = random(speedMin, speedMax);');
-        parts.push('var driftX = Math.cos(angle) * speed * time;');
-        parts.push('var driftY = Math.sin(angle) * speed * time;');
-        parts.push('var pullX = (tX - startX) * attraction * Math.min(1, time / 2);');
-        parts.push('var pullY = (tY - startY) * attraction * Math.min(1, time / 2);');
-        parts.push('var rawX = startX + driftX + pullX;');
-        parts.push('var rawY = startY + driftY + pullY;');
-        parts.push('var wrapX = rawX % thisComp.width;');
-        parts.push('var wrapY = rawY % thisComp.height;');
-        parts.push('if (wrapX < 0) wrapX += thisComp.width;');
-        parts.push('if (wrapY < 0) wrapY += thisComp.height;');
-        parts.push('[wrapX, wrapY];');
-        parts.push('} catch(e) { [random(0, thisComp.width), random(0, thisComp.height)]; }');
-        return parts.join('\n');
+        // ===== 运动与 Wrap =====
+        p.push('');
+        p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
+        p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
+        p.push('var speed = random(speedMin, speedMax);');
+        p.push('var driftX = Math.cos(angle) * speed * time;');
+        p.push('var driftY = Math.sin(angle) * speed * time;');
+        p.push('var pullX = (tX - startX) * attraction * Math.min(1, time / 2);');
+        p.push('var pullY = (tY - startY) * attraction * Math.min(1, time / 2);');
+        p.push('var rawX = startX + driftX + pullX;');
+        p.push('var rawY = startY + driftY + pullY;');
+        p.push('var wrapX = rawX % thisComp.width;');
+        p.push('var wrapY = rawY % thisComp.height;');
+        p.push('if (wrapX < 0) wrapX += thisComp.width;');
+        p.push('if (wrapY < 0) wrapY += thisComp.height;');
+        p.push('[wrapX, wrapY];');
+        return p.join('\n');
     }
 
     function buildOpacityExpression() {
