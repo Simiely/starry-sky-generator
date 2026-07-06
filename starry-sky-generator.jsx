@@ -1420,8 +1420,115 @@
         };
 
         // ==============================
-        //  UI 辅助函数
+        //  槽位预设 (存储于 app.settings)
         // ==============================
+        var slotPanel = panel.add("panel");
+        slotPanel.text = " 槽位预设 (Slot Preset) ";
+        slotPanel.orientation = "column";
+        slotPanel.alignChildren = ["fill", "top"];
+        slotPanel.spacing = 3;
+        slotPanel.margins = [8, 14, 8, 8];
+
+        // 4 行存储/读取按钮对
+        var SLOT_KEYS = ["Slot1", "Slot2", "Slot3", "Slot4"];
+        var slotRows = [];
+        var slotStatus = [];
+
+        for (var si = 0; si < 4; si++) {
+            var row = slotPanel.add("group");
+            row.orientation = "row"; row.alignment = ["fill", "center"]; row.spacing = 3;
+
+            var saveBtn = row.add("button", undefined, "存储 " + (si + 1));
+            saveBtn.preferredSize = [-1, 22];
+
+            var loadBtn = row.add("button", undefined, "使用 " + (si + 1));
+            loadBtn.preferredSize = [-1, 22];
+
+            var status = row.add("statictext", undefined, "(空)");
+            status.preferredSize = [45, 16];
+
+            slotRows.push({ save: saveBtn, load: loadBtn, status: status, idx: si });
+        }
+
+        // 槽位管理按钮
+        var slotBtnRow = slotPanel.add("group");
+        slotBtnRow.orientation = "row"; slotBtnRow.alignment = ["fill", "center"]; slotBtnRow.spacing = 4;
+        var clearAllSlotBtn = slotBtnRow.add("button", undefined, "清空所有槽位");
+        clearAllSlotBtn.preferredSize = [-1, 22];
+
+        // 保存槽位
+        function saveSlot(idx) {
+            try {
+                var params = getUIParams();
+                var jsonStr = JSON.stringify(params, null, 2);
+                app.settings.saveSetting("StarrySkyGenerator", SLOT_KEYS[idx], jsonStr);
+                slotRows[idx].status.text = "\u2713";
+            } catch (e) {
+                debugLog("saveSlot error: " + e.toString());
+            }
+        }
+
+        // 加载槽位
+        function loadSlot(idx) {
+            try {
+                var jsonStr = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[idx]);
+                if (!jsonStr || jsonStr === "") {
+                    alert("槽位 " + (idx + 1) + " 为空。");
+                    return;
+                }
+                var preset = JSON.parse(jsonStr);
+                applyPresetToUI(preset);
+                // 也设置一下当前选择控件（applyPresetToUI 之外的值）
+                var sh = preset["形状"];
+                if (sh !== undefined) shapeDropdown.selection = sh;
+                var em = preset["emitMode"];
+                if (em !== undefined) emitModeDrop.selection = em;
+                var tm = preset["targetMode"];
+                if (tm !== undefined) targetModeDrop.selection = tm;
+                attractSlider.value = preset["吸引力"] || 0;
+                attractValue.text = Math.round(attractSlider.value) + "%";
+                attractDurSlider.value = preset["吸引时长"] || 2;
+                attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
+                try { updateColorSwatch(); } catch (e) {}
+                setStatus("已加载槽位 " + (idx + 1));
+            } catch (e) {
+                debugLog("loadSlot error: " + e.toString());
+                alert("加载槽位失败：" + e.toString());
+            }
+        }
+
+        // 更新槽位状态显示
+        function updateSlotStatus() {
+            for (var si = 0; si < 4; si++) {
+                try {
+                    var jsonStr = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
+                    slotRows[si].status.text = (jsonStr && jsonStr !== "") ? "\u2713" : "(空)";
+                } catch (e) {
+                    slotRows[si].status.text = "?";
+                }
+            }
+        }
+
+        // 清空所有槽位
+        clearAllSlotBtn.onClick = function() {
+            if (!confirm("确定清空所有 4 个槽位预设？")) return;
+            for (var si = 0; si < 4; si++) {
+                try { app.settings.saveSetting("StarrySkyGenerator", SLOT_KEYS[si], ""); } catch (e) {}
+            }
+            updateSlotStatus();
+            setStatus("所有槽位已清空");
+        };
+
+        // 绑定存储/使用按钮
+        for (var si = 0; si < 4; si++) {
+            (function(slotIdx) {
+                slotRows[slotIdx].save.onClick = function() { saveSlot(slotIdx); updateSlotStatus(); setStatus("已存储槽位 " + (slotIdx + 1)); };
+                slotRows[slotIdx].load.onClick = function() { loadSlot(slotIdx); };
+            })(si);
+        }
+
+        // 初始化状态
+        updateSlotStatus();
 
         function getUIParams() {
             return {
