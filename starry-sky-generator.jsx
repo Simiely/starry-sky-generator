@@ -966,10 +966,10 @@
         r1d.add("statictext", undefined, "缩放:").preferredSize = [50, 18];
         var sizeInitInput = r1d.add("edittext", undefined, "80");
         sizeInitInput.preferredSize = [55, 20]; sizeInitInput.characters = 5;
-        r1d.add("statictext", undefined, "% ~ (百分比)").preferredSize = [28, 18];
+        r1d.add("statictext", undefined, "% ~").preferredSize = [28, 18];
         var sizeFinalInput = r1d.add("edittext", undefined, "100");
         sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
-        r1d.add("statictext", undefined, " % (百分比)").preferredSize = [55, 18];
+        r1d.add("statictext", undefined, " %").preferredSize = [55, 18];
 
         var r1c = paramGroup.add("group");
         r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
@@ -996,7 +996,7 @@
         hueSlider.preferredSize = [60, 20];
         var hueValue = r2.add("edittext", undefined, "58");
         hueValue.preferredSize = [55, 20]; hueValue.characters = 5;
-        r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
+        r2.add("statictext", undefined, "%").preferredSize = [50, 18];
 
         // 饱和度
         r2.add("statictext", undefined, "饱和度:").preferredSize = [50, 18];
@@ -1004,7 +1004,7 @@
         satSlider.preferredSize = [60, 20];
         var satValue = r2.add("edittext", undefined, "80");
         satValue.preferredSize = [55, 20]; satValue.characters = 5;
-        r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
+        r2.add("statictext", undefined, "%").preferredSize = [50, 18];
 
         // 第二行：亮度 + 色相扩散
         var r2b = paramGroup.add("group");
@@ -1015,9 +1015,9 @@
         lightSlider.preferredSize = [60, 20];
         var lightValue = r2b.add("edittext", undefined, "50");
         lightValue.preferredSize = [55, 20]; lightValue.characters = 5;
-        r2b.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
+        r2b.add("statictext", undefined, "%").preferredSize = [50, 18];
 
-        r2b.add("statictext", undefined, "  色相扩散:").preferredSize = [68, 18];
+        r2b.add("statictext", undefined, "色相扩散:").preferredSize = [68, 18];
         var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
         hueVarSlider.preferredSize = [60, 20];
         var hueVarValue = r2b.add("edittext", undefined, "30");
@@ -1399,7 +1399,7 @@
         l2.add("statictext", undefined, "淡入:").preferredSize = [50, 18];
         var fadeInInput = l2.add("edittext", undefined, "0.3");
         fadeInInput.preferredSize = [55, 20]; fadeInInput.characters = 5;
-        l2.add("statictext", undefined, " s  淡出:").preferredSize = [60, 18];
+        l2.add("statictext", undefined, " s (秒)  淡出:").preferredSize = [60, 18];
         var fadeOutInput = l2.add("edittext", undefined, "0.8");
         fadeOutInput.preferredSize = [55, 20]; fadeOutInput.characters = 5;
         l2.add("statictext", undefined, " s (秒)").preferredSize = [40, 18];
@@ -1423,7 +1423,7 @@
         twinkleStrSlider.preferredSize = [50, 20];
         var twinkleStrValue = f1.add("edittext", undefined, "50");
         twinkleStrValue.preferredSize = [55, 20]; twinkleStrValue.characters = 5;
-        f1.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
+        f1.add("statictext", undefined, "%").preferredSize = [50, 18];
         f1.add("statictext", undefined, " 速度:").preferredSize = [40, 18];
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
         twinkleSpdSlider.preferredSize = [50, 20];
@@ -1890,7 +1890,7 @@
             sSl.preferredSize = [120, 20];
             var sIn = sGrp.add("edittext", undefined, curS.toString());
             sIn.preferredSize = [55, 20]; sIn.characters = 5;
-            sGrp.add("statictext", undefined, "% (百分比)").preferredSize = [60, 18];
+            sGrp.add("statictext", undefined, "%").preferredSize = [60, 18];
             sIn.preferredSize = [45, 20]; sIn.characters = 3;
             sSl.onChanging = function() {
                 sIn.text = Math.round(sSl.value).toString();
@@ -1909,7 +1909,7 @@
             lSl.preferredSize = [120, 20];
             var lIn = lGrp.add("edittext", undefined, curL.toString());
             lIn.preferredSize = [45, 20]; lIn.characters = 3;
-            lGrp.add("statictext", undefined, "% (百分比)").preferredSize = [60, 18];
+            lGrp.add("statictext", undefined, "%").preferredSize = [60, 18];
             lSl.onChanging = function() {
                 lIn.text = Math.round(lSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
