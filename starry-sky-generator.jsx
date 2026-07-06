@@ -904,34 +904,46 @@
         };
 
         // ==============================
-        //  发射区域
+        //  发射区域（百分比滑块）
         // ==============================
         var emitGroup = paramGroup.add("panel");
-        emitGroup.text = " 发射区域 (Emit Zone) ";
+        emitGroup.text = " 发射区域 (Emit Zone, %)";
         emitGroup.orientation = "column";
         emitGroup.alignChildren = ["fill", "top"];
         emitGroup.spacing = 4;
         emitGroup.margins = [8, 14, 8, 8];
 
-        // 左 右 一行
+        // 左 右 一行（滑块 + 百分比）
         var ee1 = emitGroup.add("group");
         ee1.orientation = "row"; ee1.alignment = ["fill", "center"];
-        ee1.add("statictext", undefined, "左 (L):").preferredSize = [50, 18];
-        var emitLInput = ee1.add("edittext", undefined, "0");
-        emitLInput.preferredSize = [40, 20]; emitLInput.characters = 4;
-        ee1.add("statictext", undefined, " 右 (R):").preferredSize = [50, 18];
-        var emitRInput = ee1.add("edittext", undefined, "1920");
-        emitRInput.preferredSize = [40, 20]; emitRInput.characters = 4;
+        ee1.add("statictext", undefined, "左 (L%):").preferredSize = [50, 18];
+        var emitLSlider = ee1.add("slider", undefined, 0, 0, 100);
+        emitLSlider.preferredSize = [60, 20];
+        var emitLVal = ee1.add("statictext", undefined, "0%");
+        emitLVal.preferredSize = [28, 18];
+        ee1.add("statictext", undefined, "右 (R%):").preferredSize = [50, 18];
+        var emitRSlider = ee1.add("slider", undefined, 100, 0, 100);
+        emitRSlider.preferredSize = [60, 20];
+        var emitRVal = ee1.add("statictext", undefined, "100%");
+        emitRVal.preferredSize = [32, 18];
+        emitLSlider.onChanging = function() { emitLVal.text = Math.round(emitLSlider.value) + "%"; };
+        emitRSlider.onChanging = function() { emitRVal.text = Math.round(emitRSlider.value) + "%"; };
 
-        // 上 下 一行
+        // 上 下 一行（滑块 + 百分比）
         var ee2 = emitGroup.add("group");
         ee2.orientation = "row"; ee2.alignment = ["fill", "center"];
-        ee2.add("statictext", undefined, "上 (T):").preferredSize = [50, 18];
-        var emitTInput = ee2.add("edittext", undefined, "0");
-        emitTInput.preferredSize = [40, 20]; emitTInput.characters = 4;
-        ee2.add("statictext", undefined, " 下 (B):").preferredSize = [50, 18];
-        var emitBInput = ee2.add("edittext", undefined, "1080");
-        emitBInput.preferredSize = [40, 20]; emitBInput.characters = 4;
+        ee2.add("statictext", undefined, "上 (T%):").preferredSize = [50, 18];
+        var emitTSlider = ee2.add("slider", undefined, 0, 0, 100);
+        emitTSlider.preferredSize = [60, 20];
+        var emitTVal = ee2.add("statictext", undefined, "0%");
+        emitTVal.preferredSize = [28, 18];
+        ee2.add("statictext", undefined, "下 (B%):").preferredSize = [50, 18];
+        var emitBSlider = ee2.add("slider", undefined, 100, 0, 100);
+        emitBSlider.preferredSize = [60, 20];
+        var emitBVal = ee2.add("statictext", undefined, "100%");
+        emitBVal.preferredSize = [32, 18];
+        emitTSlider.onChanging = function() { emitTVal.text = Math.round(emitTSlider.value) + "%"; };
+        emitBSlider.onChanging = function() { emitBVal.text = Math.round(emitBSlider.value) + "%"; };
 
         // ==============================
         //  运动控制
@@ -984,12 +996,17 @@
         // 目标吸引（v1.8）
         var m4 = motionGroup.add("group");
         m4.orientation = "row"; m4.alignment = ["fill", "center"];
-        m4.add("statictext", undefined, "目标 (Target):").preferredSize = [80, 18];
-        var tXInput = m4.add("edittext", undefined, "960");
-        tXInput.preferredSize = [35, 20]; tXInput.characters = 4;
-        m4.add("statictext", undefined, " , ").preferredSize = [15, 18];
-        var tYInput = m4.add("edittext", undefined, "540");
-        tYInput.preferredSize = [35, 20]; tYInput.characters = 4;
+        m4.add("statictext", undefined, "目标 (Target%):").preferredSize = [85, 18];
+        var tXSlider = m4.add("slider", undefined, 50, 0, 100);
+        tXSlider.preferredSize = [50, 20];
+        var tXVal = m4.add("statictext", undefined, "50%");
+        tXVal.preferredSize = [32, 18];
+        var tYSlider = m4.add("slider", undefined, 50, 0, 100);
+        tYSlider.preferredSize = [50, 20];
+        var tYVal = m4.add("statictext", undefined, "50%");
+        tYVal.preferredSize = [32, 18];
+        tXSlider.onChanging = function() { tXVal.text = Math.round(tXSlider.value) + "%"; };
+        tYSlider.onChanging = function() { tYVal.text = Math.round(tYSlider.value) + "%"; };
 
         var m5 = motionGroup.add("group");
         m5.orientation = "row"; m5.alignment = ["fill", "center"];
@@ -1158,6 +1175,12 @@
         // ==============================
 
         function getUIParams() {
+            // 获取合成尺寸（用于百分比→像素转换）
+            var compW = 1920, compH = 1080;
+            try {
+                var c = app.project.activeItem;
+                if (c && c instanceof CompItem) { compW = c.width; compH = c.height; }
+            } catch (e) {}
             return {
                 count: Math.round(countSlider.value),
                 sizeMin: parseFloat(sizeMinInput.text) || 3,
@@ -1179,13 +1202,13 @@
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
                 seed: Math.round(seedSlider.value),
-                // v1.8 发射区域 + 目标吸引
-                emitL: parseFloat(emitLInput.text) || 0,
-                emitR: parseFloat(emitRInput.text) || 1920,
-                emitT: parseFloat(emitTInput.text) || 0,
-                emitB: parseFloat(emitBInput.text) || 1080,
-                tX: parseFloat(tXInput.text) || 960,
-                tY: parseFloat(tYInput.text) || 540,
+                // v1.8 发射区域 + 目标吸引（百分比 → 像素）
+                emitL: Math.round(emitLSlider.value / 100 * (compW || 1920)),
+                emitR: Math.round(emitRSlider.value / 100 * (compW || 1920)),
+                emitT: Math.round(emitTSlider.value / 100 * (compH || 1080)),
+                emitB: Math.round(emitBSlider.value / 100 * (compH || 1080)),
+                tX: Math.round(tXSlider.value / 100 * (compW || 1920)),
+                tY: Math.round(tYSlider.value / 100 * (compH || 1080)),
                 attraction: Math.round(attractSlider.value)
             };
         }
@@ -1249,13 +1272,21 @@
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
-            // v1.8 发射区域 + 目标吸引（预设恢复）
-            emitLInput.text = (preset["发射区左"] !== undefined ? preset["发射区左"] : 0).toString();
-            emitRInput.text = (preset["发射区右"] !== undefined ? preset["发射区右"] : 1920).toString();
-            emitTInput.text = (preset["发射区上"] !== undefined ? preset["发射区上"] : 0).toString();
-            emitBInput.text = (preset["发射区下"] !== undefined ? preset["发射区下"] : 1080).toString();
-            tXInput.text = (preset["目标X"] !== undefined ? preset["目标X"] : 960).toString();
-            tYInput.text = (preset["目标Y"] !== undefined ? preset["目标Y"] : 540).toString();
+            // v1.8 发射区域 + 目标吸引（像素→百分比恢复）
+            var pW = 1920, pH = 1080;
+            try { var ac = app.project.activeItem; if (ac && ac instanceof CompItem) { pW = ac.width; pH = ac.height; } } catch (e) {}
+            emitLSlider.value = (preset["发射区左"] !== undefined ? preset["发射区左"] : 0) / pW * 100;
+            emitLVal.text = Math.round(emitLSlider.value) + "%";
+            emitRSlider.value = (preset["发射区右"] !== undefined ? preset["发射区右"] : 1920) / pW * 100;
+            emitRVal.text = Math.round(emitRSlider.value) + "%";
+            emitTSlider.value = (preset["发射区上"] !== undefined ? preset["发射区上"] : 0) / pH * 100;
+            emitTVal.text = Math.round(emitTSlider.value) + "%";
+            emitBSlider.value = (preset["发射区下"] !== undefined ? preset["发射区下"] : 1080) / pH * 100;
+            emitBVal.text = Math.round(emitBSlider.value) + "%";
+            tXSlider.value = (preset["目标X"] !== undefined ? preset["目标X"] : 960) / pW * 100;
+            tXVal.text = Math.round(tXSlider.value) + "%";
+            tYSlider.value = (preset["目标Y"] !== undefined ? preset["目标Y"] : 540) / pH * 100;
+            tYVal.text = Math.round(tYSlider.value) + "%";
             attractSlider.value = preset["吸引力"] || 0;
             attractValue.text = Math.round(attractSlider.value) + "%";
             try { updateColorSwatch(); } catch (e) {}
