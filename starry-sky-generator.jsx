@@ -970,6 +970,7 @@
             var isMask = (emitModeDrop.selection && emitModeDrop.selection.index === 1);
             ee2.visible = isMask;
             ee3.visible = isMask;
+            updateEmitStatus();
         };
 
         // 刷新按钮
@@ -993,7 +994,34 @@
             try {
                 var c = app.project.activeItem;
                 if (c && c instanceof CompItem) populateEmitMask(c);
+                updateEmitStatus();
             } catch (e) {}
+        };
+
+        // 状态提示
+        var emitStatus = emitGroup.add("statictext", undefined, "");
+        emitStatus.preferredSize = [-1, 16];
+
+        function updateEmitStatus() {
+            try {
+                if (!emitModeDrop.selection || emitModeDrop.selection.index !== 1) {
+                    emitStatus.text = "";
+                    return;
+                }
+                var lName = emitLayerDrop.selection ? emitLayerDrop.selection.text : "-";
+                var mName = emitMaskDrop.selection ? emitMaskDrop.selection.text : "-";
+                emitStatus.text = "\u2713 \u5df2\u9009: " + lName + " \u2192 " + mName;
+            } catch (e) {}
+        }
+
+        // 遮罩下拉选中也更新状态
+        emitMaskDrop.onChange = function() { updateEmitStatus(); };
+
+        // 刷新时也更新状态
+        var origRefresh = emitRefreshBtn.onClick;
+        emitRefreshBtn.onClick = function() {
+            origRefresh();
+            updateEmitStatus();
         };
 
         // 密度行
@@ -1093,7 +1121,9 @@
         m4b.visible = false;
 
         targetModeDrop.onChange = function() {
-            m4b.visible = (targetModeDrop.selection && targetModeDrop.selection.index === 1);
+            var isTgt = (targetModeDrop.selection && targetModeDrop.selection.index === 1);
+            m4b.visible = isTgt;
+            updateTargetStatus();
         };
         tgtRefreshBtn.onClick = function() {
             try {
@@ -1104,8 +1134,23 @@
                     targetLayerDrop.add("item", c.layer(li).name);
                 }
                 targetLayerDrop.selection = 0;
+                updateTargetStatus();
             } catch (e) {}
         };
+
+        var tgtStatus = motionGroup.add("statictext", undefined, "");
+        tgtStatus.preferredSize = [-1, 16];
+        targetLayerDrop.onChange = function() { updateTargetStatus(); };
+        function updateTargetStatus() {
+            try {
+                if (!targetModeDrop.selection || targetModeDrop.selection.index !== 1) {
+                    tgtStatus.text = "";
+                    return;
+                }
+                var n = targetLayerDrop.selection ? targetLayerDrop.selection.text : "-";
+                tgtStatus.text = "\u2713 \u76ee\u6807: " + n;
+            } catch (e) {}
+        }
 
         var m5 = motionGroup.add("group");
         m5.orientation = "row"; m5.alignment = ["fill", "center"];
