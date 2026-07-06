@@ -995,7 +995,7 @@
         var hueSlider = r2.add("slider", undefined, 58, 0, 100);
         hueSlider.preferredSize = [60, 20];
         var hueValue = r2.add("edittext", undefined, "58");
-        hueValue.preferredSize = [35, 20]; hueValue.characters = 3;
+        hueValue.preferredSize = [55, 20]; hueValue.characters = 5;
         r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         // 饱和度
@@ -1003,7 +1003,7 @@
         var satSlider = r2.add("slider", undefined, 80, 0, 100);
         satSlider.preferredSize = [60, 20];
         var satValue = r2.add("edittext", undefined, "80");
-        satValue.preferredSize = [35, 20]; satValue.characters = 3;
+        satValue.preferredSize = [55, 20]; satValue.characters = 5;
         r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         // 第二行：亮度 + 色相扩散
@@ -1014,14 +1014,14 @@
         var lightSlider = r2b.add("slider", undefined, 50, 0, 100);
         lightSlider.preferredSize = [60, 20];
         var lightValue = r2b.add("edittext", undefined, "50");
-        lightValue.preferredSize = [35, 20]; lightValue.characters = 3;
+        lightValue.preferredSize = [55, 20]; lightValue.characters = 5;
         r2b.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         r2b.add("statictext", undefined, "  色相扩散:").preferredSize = [68, 18];
         var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
         hueVarSlider.preferredSize = [60, 20];
         var hueVarValue = r2b.add("edittext", undefined, "30");
-        hueVarValue.preferredSize = [40, 20]; hueVarValue.characters = 3;
+        hueVarValue.preferredSize = [55, 20]; hueVarValue.characters = 5;
         r2b.add("statictext", undefined, "deg (角度)").preferredSize = [50, 18];
 
         // HSL → RGB 颜色方块更新
@@ -1212,7 +1212,7 @@
         var dirSlider = m1.add("slider", undefined, 270, 0, 360);
         dirSlider.preferredSize = [100, 20];
         var dirValue = m1.add("edittext", undefined, "270");
-        dirValue.preferredSize = [50, 20]; dirValue.characters = 5;
+        dirValue.preferredSize = [55, 20]; dirValue.characters = 5;
         m1.add("statictext", undefined, " deg (角度)").preferredSize = [30, 18];
         dirSlider.onChanging = function() { dirValue.text = Math.round(dirSlider.value).toString(); };
         dirValue.onChange = function() {
@@ -1226,7 +1226,7 @@
         var spreadSlider = m2.add("slider", undefined, 180, 0, 360);
         spreadSlider.preferredSize = [100, 20];
         var spreadValue = m2.add("edittext", undefined, "180");
-        spreadValue.preferredSize = [50, 20]; spreadValue.characters = 5;
+        spreadValue.preferredSize = [55, 20]; spreadValue.characters = 5;
         m2.add("statictext", undefined, " +/- deg (角度)").preferredSize = [55, 18];
         spreadSlider.onChanging = function() { spreadValue.text = Math.round(spreadSlider.value).toString(); };
         spreadValue.onChange = function() {
@@ -1361,7 +1361,7 @@
         var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
         attractDurSlider.preferredSize = [60, 20];
         var attractDurInput = m5.add("edittext", undefined, "2");
-        attractDurInput.preferredSize = [50, 20]; attractDurInput.characters = 5;
+        attractDurInput.preferredSize = [55, 20]; attractDurInput.characters = 5;
         attractDurSlider.onChanging = function() {
             attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
         };
@@ -1388,10 +1388,10 @@
         l1.orientation = "row"; l1.alignment = ["fill", "center"];
         l1.add("statictext", undefined, "时长:").preferredSize = [50, 18];
         var lifeMinInput = l1.add("edittext", undefined, "2");
-        lifeMinInput.preferredSize = [50, 20]; lifeMinInput.characters = 5;
+        lifeMinInput.preferredSize = [55, 20]; lifeMinInput.characters = 5;
         l1.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
         var lifeMaxInput = l1.add("edittext", undefined, "6");
-        lifeMaxInput.preferredSize = [50, 20]; lifeMaxInput.characters = 5;
+        lifeMaxInput.preferredSize = [55, 20]; lifeMaxInput.characters = 5;
         l1.add("statictext", undefined, " s (秒)").preferredSize = [25, 18];
 
         var l2 = lifeGroup.add("group");
@@ -1421,14 +1421,16 @@
         f1.add("statictext", undefined, "闪烁幅度:").preferredSize = [60, 18];
         var twinkleStrSlider = f1.add("slider", undefined, 50, 0, 100);
         twinkleStrSlider.preferredSize = [50, 20];
-        var twinkleStrValue = f1.add("statictext", undefined, "50%");
-        twinkleStrValue.preferredSize = [30, 18];
+        var twinkleStrValue = f1.add("edittext", undefined, "50");
+        twinkleStrValue.preferredSize = [55, 20]; twinkleStrValue.characters = 5;
+        f1.add("statictext", undefined, "%").preferredSize = [15, 18];
         f1.add("statictext", undefined, " 速度:").preferredSize = [40, 18];
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
         twinkleSpdSlider.preferredSize = [50, 20];
         var twinkleSpdValue = f1.add("edittext", undefined, "2");
-        twinkleSpdValue.preferredSize = [35, 20]; twinkleSpdValue.characters = 4;
-        twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%"; };
+        twinkleSpdValue.preferredSize = [55, 20]; twinkleSpdValue.characters = 5;
+        twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString(); };
+        twinkleStrValue.onChange = function() { var v = parseInt(twinkleStrValue.text); if (!isNaN(v)) twinkleStrSlider.value = Math.max(0, Math.min(100, v)); };
         twinkleSpdSlider.onChanging = function() { twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10; };
         twinkleSpdValue.onChange = function() {
             var v = parseFloat(twinkleSpdValue.text);
@@ -1441,7 +1443,7 @@
         var seedSlider = f2.add("slider", undefined, 42, 0, 9999);
         seedSlider.preferredSize = [100, 20];
         var seedValue = f2.add("edittext", undefined, "42");
-        seedValue.preferredSize = [50, 20]; seedValue.characters = 5;
+        seedValue.preferredSize = [55, 20]; seedValue.characters = 5;
         var randomSeedBtn = f2.add("button", undefined, "随机");
         randomSeedBtn.preferredSize = [45, 22];
         seedSlider.onChanging = function() { seedValue.text = Math.round(seedSlider.value).toString(); };
@@ -1467,7 +1469,7 @@
         var emitOffSlider = f4.add("slider", undefined, 0, 0, 6);
         emitOffSlider.preferredSize = [80, 20];
         var emitOffValue = f4.add("edittext", undefined, "0");
-        emitOffValue.preferredSize = [35, 20]; emitOffValue.characters = 4;
+        emitOffValue.preferredSize = [55, 20]; emitOffValue.characters = 5;
         f4.add("statictext", undefined, "s (秒)").preferredSize = [15, 18];
         emitOffSlider.onChanging = function() { emitOffValue.text = (Math.round(emitOffSlider.value * 10) / 10).toString(); };
         emitOffValue.onChange = function() {
@@ -1531,7 +1533,7 @@
         var presetCountSlider = presetCountRow.add("slider", undefined, 200, 10, 2000);
         presetCountSlider.preferredSize = [100, 20];
         var presetCountValue = presetCountRow.add("edittext", undefined, "200");
-        presetCountValue.preferredSize = [50, 20]; presetCountValue.characters = 5;
+        presetCountValue.preferredSize = [55, 20]; presetCountValue.characters = 5;
         presetCountSlider.onChanging = function() {
             presetCountValue.text = Math.round(presetCountSlider.value).toString();
         };
@@ -1640,7 +1642,7 @@
                 if (p.fadeIn !== undefined)     fadeInInput.text = p.fadeIn.toString();
                 if (p.fadeOut !== undefined)    fadeOutInput.text = p.fadeOut.toString();
                 if (p.twinkleEnabled !== undefined) twinkleCheck.value = p.twinkleEnabled;
-                if (p.twinkleStrength !== undefined) { twinkleStrSlider.value = p.twinkleStrength; twinkleStrValue.text = Math.round(p.twinkleStrength) + "%"; }
+                if (p.twinkleStrength !== undefined) { twinkleStrSlider.value = p.twinkleStrength; twinkleStrValue.text = Math.round(p.twinkleStrength).toString(); }
                 if (p.twinkleSpeed !== undefined)   { twinkleSpdSlider.value = p.twinkleSpeed; twinkleSpdValue.text = Math.round(p.twinkleSpeed * 10) / 10; }
                 if (p.seed !== undefined)       { seedSlider.value = p.seed; seedValue.text = Math.round(p.seed).toString(); }
                 if (p.emitMode !== undefined)   emitModeDrop.selection = p.emitMode;
@@ -1767,7 +1769,7 @@
             fadeInInput.text = (preset["淡入时长(秒)"] || 0.3).toString();
             fadeOutInput.text = (preset["淡出时长(秒)"] || 0.8).toString();
             twinkleStrSlider.value = preset["闪烁强度"] || 50;
-            twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%";
+            twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString();
             twinkleCheck.value = (preset["闪烁强度"] || 0) > 0;
             twinkleSpdSlider.value = preset["闪烁速度"] || 2;
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
