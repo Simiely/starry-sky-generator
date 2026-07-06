@@ -722,26 +722,6 @@
         }
     }
 
-    function clearParticles(comp) {
-        app.beginUndoGroup("清除星空粒子");
-        try {
-            var removed = 0;
-            for (var i = comp.numLayers; i >= 1; i--) {
-                try {
-                    if (comp.layer(i).name.indexOf("Star_Particle_") === 0) {
-                        comp.layer(i).remove();
-                        removed++;
-                    }
-                } catch (e) {}
-            }
-            alert("已清除 " + removed + " 个粒子层。");
-        } catch (e) {
-            showErrorReport("清除粒子失败", e.toString(), e, e.line);
-        } finally {
-            app.endUndoGroup();
-        }
-    }
-
     function clearAll(comp) {
         app.beginUndoGroup("清除全部星空元素");
         try {
@@ -768,66 +748,6 @@
         var s = num.toString();
         while (s.length < width) s = "0" + s;
         return s;
-    }
-
-    // ==================== 预设系统 ====================
-
-    function getPresetFromController(controller) {
-        var preset = {};
-        var names = [
-            "粒子数量", "最小尺寸", "最大尺寸",
-            "色相(0-360)", "色相随机范围", "饱和度", "亮度",
-            "运动方向(度)", "方向随机范围", "最小速度", "最大速度",
-            "最小生命周期(秒)", "最大生命周期(秒)", "淡入时长(秒)", "淡出时长(秒)",
-            "闪烁强度", "闪烁速度", "随机种子"
-        ];
-        for (var i = 0; i < names.length; i++) {
-            preset[names[i]] = getControllerSliderValue(controller, names[i]);
-        }
-        return preset;
-    }
-
-    function applyPresetToController(controller, preset) {
-        for (var key in preset) {
-            if (preset.hasOwnProperty(key)) {
-                updateControllerSlider(controller, key, preset[key]);
-            }
-        }
-    }
-
-    function savePreset(controller) {
-        try {
-            var preset = getPresetFromController(controller);
-            var jsonStr = JSON.stringify(preset, null, 2);
-            var file = File.saveDialog("保存星空预设", "*.json");
-            if (file) {
-                file.encoding = "UTF-8";
-                file.open("w");
-                file.write(jsonStr);
-                file.close();
-                alert("预设已保存！");
-            }
-        } catch (e) {
-            showErrorReport("保存预设失败", e.toString(), e, e.line);
-        }
-    }
-
-    function loadPreset(controller, comp) {
-        try {
-            var file = File.openDialog("加载星空预设", "*.json");
-            if (!file) return;
-            file.encoding = "UTF-8";
-            file.open("r");
-            var jsonStr = file.read();
-            file.close();
-            var preset = JSON.parse(jsonStr);
-            applyPresetToController(controller, preset);
-            if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100, 2, true);
-            }
-        } catch (e) {
-            showErrorReport("加载预设失败", e.toString(), e, e.line);
-        }
     }
 
     var builtInPresets = {
@@ -1986,50 +1906,6 @@
                 }
             });
         };
-
-        // 槽位选取对话框（保存/加载共用）
-        function showSlotPicker(mode) {
-            var title = (mode === "save") ? "保存到槽位" : "从槽位加载";
-            var dlg = new Window("dialog", title);
-            dlg.orientation = "column";
-            dlg.alignChildren = ["fill", "top"];
-            dlg.spacing = 6;
-            dlg.margins = [10, 10, 10, 10];
-
-            // 两行，每行两个按钮
-            for (var r = 0; r < 2; r++) {
-                var row = dlg.add("group");
-                row.orientation = "row"; row.alignment = ["fill", "center"]; row.spacing = 6;
-                for (var c = 0; c < 2; c++) {
-                    var slotIdx = r * 2 + c;
-                    var btn = row.add("button", undefined, "槽位 " + (slotIdx + 1));
-                    btn.preferredSize = [80, 26];
-                    // 显示状态
-                    try {
-                        var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[slotIdx]);
-                        if (js && js !== "") btn.text = "\u2713 槽位 " + (slotIdx + 1);
-                    } catch (e) {}
-                    (function(idx) {
-                        btn.onClick = function() {
-                            dlg.close();
-                            if (mode === "save") {
-                                saveSlot(idx);
-                                updateSlotBtnState();
-                                setStatus("已保存到槽位 " + (idx + 1));
-                            } else {
-                                loadSlot(idx);
-                            }
-                        };
-                    })(slotIdx);
-                }
-            }
-
-            var cancelBtn = dlg.add("button", undefined, "取消");
-            cancelBtn.alignment = ["center", "top"];
-            cancelBtn.preferredSize = [60, 24];
-            cancelBtn.onClick = function() { dlg.close(); };
-            dlg.show();
-        }
 
         saveBtn.onClick = function() {
             safeExecute("保存预设", function() {
