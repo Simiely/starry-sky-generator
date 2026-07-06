@@ -1841,12 +1841,55 @@
             });
         };
 
+        // 槽位选取对话框（保存/加载共用）
+        function showSlotPicker(mode) {
+            var title = (mode === "save") ? "保存到槽位" : "从槽位加载";
+            var dlg = new Window("dialog", title);
+            dlg.orientation = "column";
+            dlg.alignChildren = ["fill", "top"];
+            dlg.spacing = 6;
+            dlg.margins = [10, 10, 10, 10];
+
+            // 两行，每行两个按钮
+            for (var r = 0; r < 2; r++) {
+                var row = dlg.add("group");
+                row.orientation = "row"; row.alignment = ["fill", "center"]; row.spacing = 6;
+                for (var c = 0; c < 2; c++) {
+                    var slotIdx = r * 2 + c;
+                    var btn = row.add("button", undefined, "槽位 " + (slotIdx + 1));
+                    btn.preferredSize = [80, 26];
+                    // 显示状态
+                    try {
+                        var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[slotIdx]);
+                        if (js && js !== "") btn.text = "\u2713 槽位 " + (slotIdx + 1);
+                    } catch (e) {}
+                    (function(idx) {
+                        btn.onClick = function() {
+                            dlg.close();
+                            if (mode === "save") {
+                                saveSlot(idx);
+                                updateSlotStatus();
+                                setStatus("已保存到槽位 " + (idx + 1));
+                            } else {
+                                loadSlot(idx);
+                            }
+                        };
+                    })(slotIdx);
+                }
+            }
+
+            var cancelBtn = dlg.add("button", undefined, "取消");
+            cancelBtn.alignment = ["center", "top"];
+            cancelBtn.preferredSize = [60, 24];
+            cancelBtn.onClick = function() { dlg.close(); };
+            dlg.show();
+        }
+
         saveBtn.onClick = function() {
             safeExecute("保存预设", function() {
                 var comp = getActiveComp();
                 if (!comp) { alert("请先打开合成！"); return; }
-                savePreset(getOrCreateController(comp));
-                setStatus("已保存");
+                showSlotPicker("save");
             });
         };
 
@@ -1854,8 +1897,7 @@
             safeExecute("加载预设", function() {
                 var comp = getActiveComp();
                 if (!comp) { alert("请先打开合成！"); return; }
-                loadPreset(getOrCreateController(comp), comp);
-                setStatus("已加载");
+                showSlotPicker("load");
             });
         };
 
