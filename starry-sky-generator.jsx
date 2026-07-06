@@ -1,5 +1,5 @@
 /* ============================================================
-   星空粒子生成器  v1.9
+   星空粒子生成器  v2.0
    Starry Sky Particle Generator for Adobe After Effects 2026
 
    基于 v1.4 Solid 方案，新增形状选择
@@ -302,8 +302,9 @@
         addSliderToLayer(nullLayer, "闪烁强度", 20);
         addSliderToLayer(nullLayer, "闪烁速度", 2);
         addSliderToLayer(nullLayer, "随机种子", 42);
-        // === v1.9 发射区域 + 目标吸引 ===
+        // === v2.0 发射区域 + 目标吸引 ===
         addSliderToLayer(nullLayer, "吸引力", 0);
+        addSliderToLayer(nullLayer, "发射密度", 100);
         return nullLayer;
     }
 
@@ -351,7 +352,8 @@
 
     // ==================== 表达式生成 ====================
 
-    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer) {
+    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, density) {
+        if (density === undefined) density = 100;
         var parts = ['seedRandom(index, true);', ''];
         parts.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
         parts.push('');
@@ -365,8 +367,28 @@
             parts.push('    if (vx < mL) mL = vx; if (vx > mR) mR = vx;');
             parts.push('    if (vy < mT) mT = vy; if (vy > mB) mB = vy;');
             parts.push('}');
+            parts.push('');
+            parts.push('// 射线法 Point-in-Polygon + 密度控制');
+            parts.push('var emitDen = ctrl.effect("发射密度")(1);');
+            parts.push('function ptInPoly(px, py, pts) {');
+            parts.push('    var ins = false;');
+            parts.push('    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {');
+            parts.push('        var xi = pts[i][0], yi = pts[i][1];');
+            parts.push('        var xj = pts[j][0], yj = pts[j][1];');
+            parts.push('        if ((yi > py) != (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) ins = !ins;');
+            parts.push('    }');
+            parts.push('    return ins;');
+            parts.push('}');
+            parts.push('var startX = mL, startY = mT, found = false;');
+            parts.push('for (var att = 0; att < 100; att++) {');
+            parts.push('    var tx = random(mL, mR); var ty = random(mT, mB);');
+            parts.push('    if (ptInPoly(tx, ty, mPts) && random(0, 100) < emitDen) {');
+            parts.push('        startX = tx; startY = ty; found = true; break;');
+            parts.push('    }');
+            parts.push('}');
         } else {
-            parts.push('var mL = 0, mR = thisComp.width, mT = 0, mB = thisComp.height;');
+            parts.push('var startX = random(0, thisComp.width);');
+            parts.push('var startY = random(0, thisComp.height);');
         }
 
         parts.push('');
@@ -389,8 +411,6 @@
         parts.push('');
         parts.push('var seedVal = ctrl.effect("随机种子")(1);');
         parts.push('seedRandom(index + seedVal, true);');
-        parts.push('var startX = random(mL, mR);');
-        parts.push('var startY = random(mT, mB);');
         parts.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         parts.push('var speed = random(speedMin, speedMax);');
         parts.push('var driftX = Math.cos(angle) * speed * time;');
@@ -407,7 +427,7 @@
         return parts.join('\n');
     }
 
-    function buildOpacityExpression() {
+    function buildOpacityExpression()function buildOpacityExpression() {
         return [
             'seedRandom(index, true);',
             '',
@@ -482,7 +502,7 @@
 
     // ==================== 粒子生成与清除 ====================
 
-    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer) {
+    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, emitDen) {
         debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
         if (shapeIdx === undefined) shapeIdx = 0;
 
@@ -502,7 +522,7 @@
             var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
             debugLog("  creating " + actualCount + " particles...");
 
-            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer);
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, emitDen);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
@@ -666,7 +686,7 @@
             var preset = JSON.parse(jsonStr);
             applyPresetToController(controller, preset);
             if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "");
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", 100);
             }
         } catch (e) {
             showErrorReport("加载预设失败", e.toString(), e, e.line);
@@ -683,7 +703,8 @@
             "淡入时长(秒)": 0.3, "淡出时长(秒)": 0.5,
             "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0
+            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "发射密度": 100
         },
         "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -694,7 +715,8 @@
             "淡入时长(秒)": 0.2, "淡出时长(秒)": 1,
             "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0
+            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "发射密度": 100
         },
         "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -705,7 +727,8 @@
             "淡入时长(秒)": 0.5, "淡出时长(秒)": 1.5,
             "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0
+            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "发射密度": 100
         },
         "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -716,7 +739,8 @@
             "淡入时长(秒)": 0.1, "淡出时长(秒)": 0.3,
             "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0
+            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "发射密度": 100
         }
     };
 
@@ -726,7 +750,7 @@
         debugLog("buildUI() starting...");
 
         var panel = (thisObj instanceof Panel) ? thisObj :
-            new Window("palette", "星空粒子生成器 v1.9", undefined, {resizeable: true});
+            new Window("palette", "星空粒子生成器 v2.0", undefined, {resizeable: true});
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
@@ -738,7 +762,7 @@
         titleRow.orientation = "row";
         titleRow.alignment = ["fill", "top"];
         titleRow.alignChildren = ["left", "center"];
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.9").preferredSize = [300, 24];
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v2.0").preferredSize = [300, 24];
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -934,7 +958,9 @@
 
         // mode 切换显示遮罩行
         emitModeDrop.onChange = function() {
-            ee2.visible = (emitModeDrop.selection && emitModeDrop.selection.index === 1);
+            var isMask = (emitModeDrop.selection && emitModeDrop.selection.index === 1);
+            ee2.visible = isMask;
+            ee3.visible = isMask;
         };
 
         // 刷新按钮
@@ -960,6 +986,17 @@
                 if (c && c instanceof CompItem) populateEmitMask(c);
             } catch (e) {}
         };
+
+        // 密度行
+        var ee3 = emitGroup.add("group");
+        ee3.orientation = "row"; ee3.alignment = ["fill", "center"];
+        ee3.add("statictext", undefined, "密度 (%):").preferredSize = [50, 18];
+        var emitDenSlider = ee3.add("slider", undefined, 100, 0, 100);
+        emitDenSlider.preferredSize = [100, 20];
+        var emitDenVal = ee3.add("statictext", undefined, "100%");
+        emitDenVal.preferredSize = [32, 18];
+        emitDenSlider.onChanging = function() { emitDenVal.text = Math.round(emitDenSlider.value) + "%"; };
+        ee3.visible = false;
 
         function populateEmitMask(comp) {
             emitMaskDrop.removeAll();
@@ -1028,7 +1065,7 @@
         speedMaxInput.preferredSize = [35, 20]; speedMaxInput.characters = 4;
         m3.add("statictext", undefined, " px/s").preferredSize = [35, 18];
 
-        // 目标吸引（v1.9: Null层选取）
+        // 目标吸引（v2.0: Null层选取）
         var m4 = motionGroup.add("group");
         m4.orientation = "row"; m4.alignment = ["fill", "center"];
         m4.add("statictext", undefined, "目标:").preferredSize = [40, 18];
@@ -1249,10 +1286,11 @@
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
                 seed: Math.round(seedSlider.value),
-                // v1.9 发射模式 + 目标选取
+                // v2.0 发射模式 + 目标选取
                 emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
                 emitLayer: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitLayerDrop.selection) ? emitLayerDrop.selection.text : "",
                 emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection) ? emitMaskDrop.selection.text : "",
+                emitDen: Math.round(emitDenSlider.value),
                 targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
                 targetLayer: (targetModeDrop.selection && targetModeDrop.selection.index === 1 && targetLayerDrop.selection) ? targetLayerDrop.selection.text : "",
                 attraction: Math.round(attractSlider.value)
@@ -1278,8 +1316,9 @@
             updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
             updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
             updateControllerSlider(controller, "随机种子", params.seed);
-            // v1.9 目标吸引
+            // v2.0 目标吸引 + 密度
             updateControllerSlider(controller, "吸引力", params.attraction);
+            updateControllerSlider(controller, "发射密度", params.emitDen);
         }
 
             function applyPresetToUI(preset) {
@@ -1312,11 +1351,13 @@
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
-            // v1.9 发射模式 + 目标选取（预设恢复）
+            // v2.0 发射模式 + 目标选取（预设恢复）
             emitModeDrop.selection = preset["发射模式"] || 0;
             if (emitModeDrop.selection && emitModeDrop.selection.index === 1) {
                 // 遮罩模式 — 需用户点击刷新
             }
+            emitDenSlider.value = preset["发射密度"] !== undefined ? preset["发射密度"] : 100;
+            emitDenVal.text = Math.round(emitDenSlider.value) + "%";
             targetModeDrop.selection = preset["目标模式"] || 0;
             attractSlider.value = preset["吸引力"] || 0;
             attractValue.text = Math.round(attractSlider.value) + "%";
@@ -1491,7 +1532,7 @@
             debugLog("Generate: count=" + params.count + " shape=" + params.shape);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
-            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.emitDen);
             setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
         }
 
@@ -1503,7 +1544,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "");
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["发射密度"] || 100);
             setStatus(presetName + " 已应用");
         }
 
