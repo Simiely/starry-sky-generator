@@ -436,7 +436,7 @@
         return parts.join('\n');
     }
 
-    function buildOpacityExpression()function buildOpacityExpression() {
+    function buildOpacityExpression() {
         return [
             'seedRandom(index, true);',
             '',
