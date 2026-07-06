@@ -993,23 +993,28 @@
             var isMask = (emitModeDrop.selection && emitModeDrop.selection.index === 1);
             ee2.visible = isMask;
             ee3.visible = isMask;
+            if (isMask) { autoRefreshEmit(); }
             updateEmitStatus();
         };
 
-        // 刷新按钮
-        emitRefreshBtn.onClick = function() {
+        // 刷新逻辑（按钮和自动刷新共用，静默）
+        function autoRefreshEmit() {
             try {
                 var c = app.project.activeItem;
-                if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
-                var idx = emitLayerDrop.selection ? emitLayerDrop.selection.index : 0;
+                if (!c || !(c instanceof CompItem)) return;
                 emitLayerDrop.removeAll();
-                for (var li = 1; li <= c.numLayers; li++) {
-                    emitLayerDrop.add("item", c.layer(li).name);
-                }
-                emitLayerDrop.selection = Math.min(idx, c.numLayers - 1);
-                // 填充遮罩
+                for (var li = 1; li <= c.numLayers; li++) { emitLayerDrop.add("item", c.layer(li).name); }
+                emitLayerDrop.selection = 0;
                 populateEmitMask(c);
             } catch (e) {}
+        }
+
+        // 刷新按钮
+        emitRefreshBtn.onClick = function() {
+            var c = app.project.activeItem;
+            if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
+            autoRefreshEmit();
+            updateEmitStatus();
         };
 
         // 选图层时更新遮罩
@@ -1158,20 +1163,25 @@
             var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
             m4b.visible = (idx === 1 || idx === 2);
             m4c.visible = (idx === 2);
+            if (idx >= 1) { autoRefreshTarget(); }
             updateTargetStatus();
         };
-        tgtRefreshBtn.onClick = function() {
+        function autoRefreshTarget() {
             try {
                 var c = app.project.activeItem;
-                if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
+                if (!c || !(c instanceof CompItem)) return;
                 targetLayerDrop.removeAll();
-                for (var li = 1; li <= c.numLayers; li++) {
-                    targetLayerDrop.add("item", c.layer(li).name);
-                }
+                for (var li = 1; li <= c.numLayers; li++) { targetLayerDrop.add("item", c.layer(li).name); }
                 targetLayerDrop.selection = 0;
                 populateTargetMask(c);
-                updateTargetStatus();
             } catch (e) {}
+        }
+
+        tgtRefreshBtn.onClick = function() {
+            var c = app.project.activeItem;
+            if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
+            autoRefreshTarget();
+            updateTargetStatus();
         };
 
         tgtMaskRefreshBtn.onClick = function() {
