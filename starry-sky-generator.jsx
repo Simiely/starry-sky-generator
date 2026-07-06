@@ -710,9 +710,9 @@
                     }
                 }
 
-                // === 高斯模糊 ===
+                // === 高斯模糊（Fast Blur） ===
                 var blurFx = addPropertySafe(fx,
-                    ["ADBE Gaussian Blur", "ADBE Gaussian Blur-0001", "高斯模糊"]);
+                    ["ADBE Fast Blur", "ADBE Gaussian Blur", "Fast Blur"]);
                 if (blurFx) {
                     // 模糊度的属性通常是第1个滑块
                     try {
@@ -1392,7 +1392,6 @@
         twinkleSpdSlider.preferredSize = [50, 20];
         var twinkleSpdValue = f1.add("edittext", undefined, "2");
         twinkleSpdValue.preferredSize = [55, 20]; twinkleSpdValue.characters = 5;
-        f1.add("statictext", undefined, "度").preferredSize = [20, 18];
         twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString(); };
         twinkleStrValue.onChange = function() { var v = parseInt(twinkleStrValue.text); if (!isNaN(v)) twinkleStrSlider.value = Math.max(0, Math.min(100, v)); };
         twinkleSpdSlider.onChanging = function() { twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10; };
@@ -1431,7 +1430,7 @@
         var fBlur = fxGroup.add("group");
         fBlur.orientation = "row"; fBlur.alignment = ["fill", "center"];
         fBlur.add("statictext", undefined, "模糊:");
-        var blurSlider = fBlur.add("slider", undefined, 0, 0, 50);
+        var blurSlider = fBlur.add("slider", undefined, 0, 0, 100);
         blurSlider.preferredSize = [60, 20];
         var blurValue = fBlur.add("edittext", undefined, "0");
         blurValue.preferredSize = [55, 20]; blurValue.characters = 5;
@@ -1439,7 +1438,7 @@
         blurSlider.onChanging = function() { blurValue.text = Math.round(blurSlider.value).toString(); };
         blurValue.onChange = function() {
             var v = parseInt(blurValue.text);
-            if (!isNaN(v)) blurSlider.value = Math.max(0, Math.min(50, v));
+            if (!isNaN(v)) blurSlider.value = Math.max(0, Math.min(100, v));
         };
 
         var f4 = fxGroup.add("group");
