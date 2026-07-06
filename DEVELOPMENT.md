@@ -473,3 +473,152 @@ for (var att = 0; att < 10; att++) {
 - **颜色预览**：`newBrush(BrushType.SOLID_COLOR, ...)`
 - **槽位预设**：`app.settings.saveSetting()` 持久化
 - **错误处理**：全局 `safeExecute()` 包装 + 可复制错误报告
+
+---
+
+## 15. 大括号平衡排查（"无法找到匹配的右括号"）
+
+### 问题：AE 反复报 "无法找到匹配的右括号"
+
+脚本始终报此错误，但行号不断变化（14 → 883 → 892 → 16）。排查过程：
+
+### 排查工具
+
+使用 Python/Node.js 编写的字节级扫描器，逐字节追踪大括号深度，忽略字符串和注释内容：
+
+```python
+while i < len(data):
+    b = data[i]
+    if not in_str:
+        if b in (39, 34): in_str = True       # 进入字符串
+        elif b == 123: depth += 1              # {
+        elif b == 125: depth -= 1              # }
+    else:
+        if b == 92: i += 2; continue           # 跳过转义
+        elif chr(b) == quote: in_str = False   # 退出字符串
+```
+
+### 根因
+
+**buildUI 函数体内有一个内层函数缺少闭合 `}`**。buildUI 的 `}` 被内层函数"吃掉"，导致：
+- 启动代码（try/catch）实际在 buildUI **函数内部**
+- `buildUI(this)` 在 buildUI 内部被调用 = **递归调用** → 失败
+- 最后一个 `}` 关闭了 bare 块，但没有关闭 buildUI
+
+### 解决方案
+
+在疑似 buildUI 关闭的位置（行 ~2111）添加 `}}` 替代 `}`：
+
+```
+旧:    }                    ← 关闭内层函数（buildUI 未关闭！）
+新:    }                    ← 关闭内层函数
+       }                    ← 关闭 buildUI（从此处开始启动代码在函数外）
+```
+
+并在文件末尾保留 2 个 `}`（catch 块 + bare 块）。
+
+### 关键教训
+
+- 不要相信理想的文件结构——工具扫描可能漏掉错误
+- 使用**字节级扫描器**（而非字符级）避免编码问题
+- 追踪大括号深度栈比单纯计数更有用
+- IIFE 方案行不通时，优先修复函数边界而非包裹代码
+
+---
+
+## 16. 复制到剪贴板失效
+
+### 问题：点击"复制错误信息"按钮弹出成功提示，但内容未复制
+
+### 根因
+
+`system.callSystem()` 命令中的路径反斜杠被重复转义：
+
+```javascript
+// ❌ 错误：Folder.temp.fsName 已经是 C:\Users\...，replace 后变成 C:\\Users\\...
+Folder.temp.fsName.replace(/\\/g, "\\\\")
+
+// ✅ 正确：直接使用原始路径
+Folder.temp.fsName + '\\ae_starry_error.txt'
+```
+
+### 解决方案
+
+去掉多余的 `replace(/\\/g, "\\\\")`，直接用 `Folder.temp.fsName`。
+
+### 经验
+
+- 在 ExtendScript 中，`system.callSystem()` 传递字符串给 cmd.exe
+- `Folder.temp.fsName` 返回的路径已经是标准 Windows 格式
+- 额外的转义破坏了 cmd.exe 对路径的解析
+
+---
+
+## 17. 面板无内容（UI 框架显示但空白）
+
+### 问题：括号修复后不报错了，但面板容器内没有任何 UI 元素
+
+### 排查路径
+
+1. **IIFE `.call(this)` 问题**：IIFE 内部的 `this` 指向与裸代码不同
+   ```
+   (function() { ... }).call(this);  ← this 被传递后正确
+   (function() { ... })();           ← this 为全局对象，buildUI 收不到 Panel
+   ```
+
+2. **递归调用**：buildUI 没被关闭时，启动代码在 buildUI 函数体内部
+   ```
+   function buildUI() {
+       ...definitions...
+       var panel = buildUI(this);  ← 递归！永远不返回
+   }
+   ```
+
+3. **bare 块作用域**：`{}` bare 块不改变 `this` 指向
+   ```
+   {                        ← bare 块，this 不变
+       this instanceof Panel → true（脚本顶部）
+   }
+   ```
+
+### 最终修复
+
+在行 2111 添加 `}}`，确保 buildUI 在启动代码执行前已关闭。结构变为：
+
+```
+{
+    function buildUI() { ... }
+    }  ← 关闭 buildUI
+    
+    // 启动代码（在 buildUI 外部）
+    try { var panel = buildUI(this); ... }
+}
+```
+
+### 经验
+
+- 面板无内容 ≠ 代码不执行。可能是函数被递归调用或 `this` 传错了
+- `buildUI(this)` 中 `this` 必须是 AE 创建的 Panel 对象
+- bare `{}` 块不影响 `this`，但函数（包括 IIFE）会改变 `this`
+- `.call(this)` 可以正确传递外层的 Panel 引用到 IIFE 内部
+
+---
+
+## 18. 版本演进更新
+
+| 版本 | 核心变更 |
+|------|----------|
+| v2.1 | 紧凑 UI 布局 + JSON 文件保存/加载（全部 4 槽位） |
+| v2.2 | 快捷预设一排 + 槽位 1-4 按钮布局 + 灰色禁用态 |
+| v2.3 | 色相 H 改为 0~100% 百分比 + HSL 一行布局 |
+| v2.4 | 大括号平衡修复 + IIFE 尝试 + bare 块还原 |
+| 最终 | 385 `{` = 385 `}`，buildUI 正确关闭，面板正常显示 |
+
+### 最终技术栈补充
+
+- **大括号调试**：字节级深度扫描器（Python/Node.js）
+- **作用域控制**：`.call(this)` 传递 Panel 引用
+- **UI 单元**：所有数值滑块 + 可编辑输入框，单位双语文标注
+- **颜色 UI**：H/S/L 一行百分比，HSL 选取器
+- **预设导出**：`.json` 文件包含全部 4 个槽位
+
