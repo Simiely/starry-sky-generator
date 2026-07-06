@@ -12,6 +12,8 @@
    ============================================================ */
 
 
+(function() {
+
     // ==================== JSON Polyfill（ExtendScript 无内置 JSON） ====================
     // 参考: AE-Lyrics-Animator DEVELOPMENT.md
     if (typeof JSON === "undefined") { JSON = {}; }
@@ -42,7 +44,7 @@
                 for (var j = 0; j < keys.length; j++) {
                     pairs.push(JSON.stringify(keys[j]) + ":" + JSON.stringify(obj[keys[j]]));
                 }
-                return "{" + pairs.join(",") + "}";
+                return "\x7B" + pairs.join(",") + "\x7D";
             }
             return "null";
         };
@@ -2123,3 +2125,5 @@
         debugLog("CRITICAL: " + e.toString());
         showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
     }
+}
+})();
