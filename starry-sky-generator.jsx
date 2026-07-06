@@ -354,7 +354,7 @@
 
     function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density) {
         if (density === undefined) density = 100;
-        var parts = ['seedRandom(index, true);', ''];
+        var parts = ['try {', 'seedRandom(index, true);', ''];
         parts.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
         parts.push('');
 
@@ -469,6 +469,7 @@
         parts.push('if (wrapX < 0) wrapX += thisComp.width;');
         parts.push('if (wrapY < 0) wrapY += thisComp.height;');
         parts.push('[wrapX, wrapY];');
+        parts.push('} catch(e) { [random(0, thisComp.width), random(0, thisComp.height)]; }');
         return parts.join('\n');
     }
 
