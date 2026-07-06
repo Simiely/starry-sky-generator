@@ -2035,35 +2035,6 @@
             });
         };
 
-        debugBtn.onClick = function() {
-            var info = [];
-            info.push("=== 调试信息 ===");
-            info.push("AE 版本: " + app.version);
-            info.push("日志条目: " + g_errorLog.length);
-            for (var li = Math.max(0, g_errorLog.length - 30); li < g_errorLog.length; li++) {
-                info.push(g_errorLog[li]);
-            }
-            var infoStr = info.join("\n");
-            var dlg = new Window("dialog", "调试信息");
-            dlg.orientation = "column";
-            dlg.alignChildren = ["fill", "top"];
-            dlg.spacing = 8; dlg.margins = [10, 10, 10, 10];
-            dlg.add("edittext", undefined, infoStr,
-                { multiline: true, readonly: true, scrolling: true }).preferredSize = [450, 300];
-            var copyBtn = dlg.add("button", undefined, "复制到剪贴板");
-            copyBtn.onClick = function() {
-                try {
-                    var tmp = new File(Folder.temp.fsName + "/ae_debug.txt");
-                    tmp.encoding = "UTF-8"; tmp.open("w"); tmp.write(infoStr); tmp.close();
-                    system.callSystem('cmd.exe /c clip < "' +
-                        Folder.temp.fsName.replace(/\\/g, "\\\\") + '\\\\ae_debug.txt"');
-                    tmp.remove();
-                    alert("已复制！");
-                } catch (e) { alert("复制失败，请手动选择文本。"); }
-            };
-            dlg.show();
-        };
-
         preset1Btn.onClick = function() { safeExecute("经典星空", function() { applyBuiltInPreset("经典星空"); }); };
         preset2Btn.onClick = function() { safeExecute("彩色星云", function() { applyBuiltInPreset("彩色星云"); }); };
         preset3Btn.onClick = function() { safeExecute("极光飘动", function() { applyBuiltInPreset("极光飘动"); }); };
