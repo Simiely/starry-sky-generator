@@ -449,11 +449,12 @@
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
         p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         p.push('var speed = random(speedMin, speedMax);');
-        p.push('var driftX = Math.cos(angle) * speed * time;');
-        p.push('var driftY = Math.sin(angle) * speed * time;');
+        p.push('var tLocal = time % eLifeDur;');
+        p.push('var driftX = Math.cos(angle) * speed * tLocal;');
+        p.push('var driftY = Math.sin(angle) * speed * tLocal;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
-        p.push('var pullX = time < attractDur ? (tX - startX) * attraction : 0;');
-        p.push('var pullY = time < attractDur ? (tY - startY) * attraction : 0;');
+        p.push('var pullX = tLocal < attractDur ? (tX - startX) * attraction : 0;');
+        p.push('var pullY = tLocal < attractDur ? (tY - startY) * attraction : 0;');
         p.push('var rawX = startX + driftX + pullX;');
         p.push('var rawY = startY + driftY + pullY;');
         p.push('var wrapX = rawX % thisComp.width;');
