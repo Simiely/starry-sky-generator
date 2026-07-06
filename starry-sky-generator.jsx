@@ -387,7 +387,7 @@
             parts.push('}');
             parts.push('');
             parts.push('// 射线法 Point-in-Polygon + 密度控制');
-            parts.push('var emitDen = ctrl.effect("发射密度")(1);');
+            parts.push('var emitDen = ctrl.effect("发射密度") ? ctrl.effect("发射密度")(1) : 100;');
             parts.push('function ptInPoly(px, py, pts) {');
             parts.push('    var ins = false;');
             parts.push('    for (var i = 0, j = pts.length - 1; i < pts.length; j = i++) {');
