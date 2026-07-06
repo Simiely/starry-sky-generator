@@ -388,9 +388,27 @@
             p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
             p.push('var eCycle = Math.floor(time / eLifeDur);');
             p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
-            p.push('var rPt = ePts.length > 0 ? eLayer.toComp([random(eL, eR), random(eT, eB)]) : [random(eL, eR), random(eT, eB)];');
-            p.push('var startX = rPt[0];');
-            p.push('var startY = rPt[1];');
+            // 点阵内发射：在边界框内随机取点，判断是否在多边形内部（无 function 关键字，内联实现）
+            // 最多尝试 10 次，避免表达式超时
+            p.push('var foundPt = false;');
+            p.push('for (var att = 0; att < 10; att++) {');
+            p.push('    var tryX = random(eL, eR);');
+            p.push('    var tryY = random(eT, eB);');
+            p.push('    var inside = false;');
+            p.push('    for (var i = 0, j = ePts.length - 1; i < ePts.length; j = i++) {');
+            p.push('        var xi = ePts[i][0], yi = ePts[i][1];');
+            p.push('        var xj = ePts[j][0], yj = ePts[j][1];');
+            p.push('        if ((yi > tryY) != (yj > tryY) && tryX < (xj - xi) * (tryY - yi) / (yj - yi) + xi) inside = !inside;');
+            p.push('    }');
+            p.push('    if (inside) {');
+            p.push('        var rPt = eLayer.toComp([tryX, tryY]);');
+            p.push('        var startX = rPt[0]; var startY = rPt[1]; foundPt = true; break;');
+            p.push('    }');
+            p.push('}');
+            p.push('if (!foundPt) {');
+            p.push('    var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
+            p.push('    var startX = rPt[0]; var startY = rPt[1];');
+            p.push('}');
         } else {
             p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
             p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
