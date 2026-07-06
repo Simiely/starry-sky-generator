@@ -18,7 +18,16 @@
     if (typeof JSON.stringify !== "function") {
         JSON.stringify = function(obj) {
             var t = typeof obj;
-            if (t === "string") return '"' + obj.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"';
+            if (t === "string") {
+                var esc = "";
+                for (var si = 0; si < obj.length; si++) {
+                    var sc = obj[si];
+                    if (sc === "\\") esc += "\\\\";
+                    else if (sc === '"') esc += '\\"';
+                    else esc += sc;
+                }
+                return '"' + esc + '"';
+            }
             if (t === "number" || t === "boolean") return String(obj);
             if (obj === null) return "null";
             if (obj instanceof Array) {
