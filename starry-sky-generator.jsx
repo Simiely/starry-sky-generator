@@ -1,5 +1,5 @@
 /* ============================================================
-   星空粒子生成器  v1.8
+   星空粒子生成器  v1.9
    Starry Sky Particle Generator for Adobe After Effects 2026
 
    基于 v1.4 Solid 方案，新增形状选择
@@ -302,13 +302,7 @@
         addSliderToLayer(nullLayer, "闪烁强度", 20);
         addSliderToLayer(nullLayer, "闪烁速度", 2);
         addSliderToLayer(nullLayer, "随机种子", 42);
-        // === v1.8 发射区域 + 目标吸引 ===
-        addSliderToLayer(nullLayer, "发射区左", 0);
-        addSliderToLayer(nullLayer, "发射区右", 1920);
-        addSliderToLayer(nullLayer, "发射区上", 0);
-        addSliderToLayer(nullLayer, "发射区下", 1080);
-        addSliderToLayer(nullLayer, "目标X", 960);
-        addSliderToLayer(nullLayer, "目标Y", 540);
+        // === v1.9 发射区域 + 目标吸引 ===
         addSliderToLayer(nullLayer, "吸引力", 0);
         return nullLayer;
     }
@@ -357,59 +351,60 @@
 
     // ==================== 表达式生成 ====================
 
-    function buildPositionExpression() {
-        return [
-            'seedRandom(index, true);',
-            '',
-            'var ctrl = thisComp.layer("Ctrl_Starfield");',
-            '',
-            '// 发射区域',
-            'var emitL = ctrl.effect("发射区左")(1);',
-            'var emitR = ctrl.effect("发射区右")(1);',
-            'var emitT = ctrl.effect("发射区上")(1);',
-            'var emitB = ctrl.effect("发射区下")(1);',
-            '',
-            '// 运动方向与速度',
-            'var dirBase = ctrl.effect("运动方向(度)")(1);',
-            'var dirSpread = ctrl.effect("方向随机范围")(1);',
-            'var speedMin = ctrl.effect("最小速度")(1);',
-            'var speedMax = ctrl.effect("最大速度")(1);',
-            '',
-            '// 目标吸引',
-            'var tX = ctrl.effect("目标X")(1);',
-            'var tY = ctrl.effect("目标Y")(1);',
-            'var attraction = ctrl.effect("吸引力")(1) / 100;',
-            '',
-            'var seedVal = ctrl.effect("随机种子")(1);',
-            '',
-            'seedRandom(index + seedVal, true);',
-            '',
-            '// ① 起点：在发射区内随机取点',
-            'var startX = random(emitL, emitR);',
-            'var startY = random(emitT, emitB);',
-            '',
-            '// ② 随机漂移分量（当前星空行为）',
-            'var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));',
-            'var speed = random(speedMin, speedMax);',
-            'var driftX = Math.cos(angle) * speed * time;',
-            'var driftY = Math.sin(angle) * speed * time;',
-            '',
-            '// ③ 目标吸引分量（v1.8 新增）',
-            'var pullX = (tX - startX) * attraction * Math.min(1, time / 2);',
-            'var pullY = (tY - startY) * attraction * Math.min(1, time / 2);',
-            '',
-            '// 合成最终位置',
-            'var rawX = startX + driftX + pullX;',
-            'var rawY = startY + driftY + pullY;',
-            '',
-            '// Wrap-around 边界循环',
-            'var wrapX = rawX % thisComp.width;',
-            'var wrapY = rawY % thisComp.height;',
-            'if (wrapX < 0) wrapX += thisComp.width;',
-            'if (wrapY < 0) wrapY += thisComp.height;',
-            '',
-            '[wrapX, wrapY];'
-        ].join('\n');
+    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer) {
+        var parts = ['seedRandom(index, true);', ''];
+        parts.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
+        parts.push('');
+
+        // 发射区域
+        if (emitMode === 1 && emitLayer && emitMask) {
+            parts.push('var mPts = thisComp.layer("' + emitLayer + '").mask("' + emitMask + '").maskPath.vertices;');
+            parts.push('var mL = 99999, mR = -99999, mT = 99999, mB = -99999;');
+            parts.push('for (var vi = 0; vi < mPts.length; vi++) {');
+            parts.push('    var vx = mPts[vi][0]; var vy = mPts[vi][1];');
+            parts.push('    if (vx < mL) mL = vx; if (vx > mR) mR = vx;');
+            parts.push('    if (vy < mT) mT = vy; if (vy > mB) mB = vy;');
+            parts.push('}');
+        } else {
+            parts.push('var mL = 0, mR = thisComp.width, mT = 0, mB = thisComp.height;');
+        }
+
+        parts.push('');
+        parts.push('var dirBase = ctrl.effect("运动方向(度)")(1);');
+        parts.push('var dirSpread = ctrl.effect("方向随机范围")(1);');
+        parts.push('var speedMin = ctrl.effect("最小速度")(1);');
+        parts.push('var speedMax = ctrl.effect("最大速度")(1);');
+
+        if (targetMode === 1 && targetLayer) {
+            parts.push('');
+            parts.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
+            parts.push('var tX = tPos[0], tY = tPos[1];');
+            parts.push('var attraction = ctrl.effect("吸引力")(1) / 100;');
+        } else {
+            parts.push('');
+            parts.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
+            parts.push('var attraction = 0;');
+        }
+
+        parts.push('');
+        parts.push('var seedVal = ctrl.effect("随机种子")(1);');
+        parts.push('seedRandom(index + seedVal, true);');
+        parts.push('var startX = random(mL, mR);');
+        parts.push('var startY = random(mT, mB);');
+        parts.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
+        parts.push('var speed = random(speedMin, speedMax);');
+        parts.push('var driftX = Math.cos(angle) * speed * time;');
+        parts.push('var driftY = Math.sin(angle) * speed * time;');
+        parts.push('var pullX = (tX - startX) * attraction * Math.min(1, time / 2);');
+        parts.push('var pullY = (tY - startY) * attraction * Math.min(1, time / 2);');
+        parts.push('var rawX = startX + driftX + pullX;');
+        parts.push('var rawY = startY + driftY + pullY;');
+        parts.push('var wrapX = rawX % thisComp.width;');
+        parts.push('var wrapY = rawY % thisComp.height;');
+        parts.push('if (wrapX < 0) wrapX += thisComp.width;');
+        parts.push('if (wrapY < 0) wrapY += thisComp.height;');
+        parts.push('[wrapX, wrapY];');
+        return parts.join('\n');
     }
 
     function buildOpacityExpression() {
@@ -487,7 +482,7 @@
 
     // ==================== 粒子生成与清除 ====================
 
-    function generateParticles(comp, controller, count, shapeIdx) {
+    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer) {
         debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
         if (shapeIdx === undefined) shapeIdx = 0;
 
@@ -507,7 +502,7 @@
             var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
             debugLog("  creating " + actualCount + " particles...");
 
-            var posExpr = buildPositionExpression();
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
@@ -671,7 +666,7 @@
             var preset = JSON.parse(jsonStr);
             applyPresetToController(controller, preset);
             if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0);
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "");
             }
         } catch (e) {
             showErrorReport("加载预设失败", e.toString(), e, e.line);
@@ -687,8 +682,8 @@
             "最小生命周期(秒)": 3, "最大生命周期(秒)": 8,
             "淡入时长(秒)": 0.3, "淡出时长(秒)": 0.5,
             "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42,
-            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
-            "目标X": 960, "目标Y": 540, "吸引力": 0
+            "发射模式": 0, "发射图层": "", "发射遮罩": "",
+            "目标模式": 0, "目标图层": "", "吸引力": 0
         },
         "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -698,8 +693,8 @@
             "最小生命周期(秒)": 1, "最大生命周期(秒)": 5,
             "淡入时长(秒)": 0.2, "淡出时长(秒)": 1,
             "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123,
-            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
-            "目标X": 960, "目标Y": 540, "吸引力": 0
+            "发射模式": 0, "发射图层": "", "发射遮罩": "",
+            "目标模式": 0, "目标图层": "", "吸引力": 0
         },
         "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -709,8 +704,8 @@
             "最小生命周期(秒)": 2, "最大生命周期(秒)": 4,
             "淡入时长(秒)": 0.5, "淡出时长(秒)": 1.5,
             "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777,
-            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
-            "目标X": 960, "目标Y": 540, "吸引力": 0
+            "发射模式": 0, "发射图层": "", "发射遮罩": "",
+            "目标模式": 0, "目标图层": "", "吸引力": 0
         },
         "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -720,8 +715,8 @@
             "最小生命周期(秒)": 1.5, "最大生命周期(秒)": 3,
             "淡入时长(秒)": 0.1, "淡出时长(秒)": 0.3,
             "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256,
-            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
-            "目标X": 960, "目标Y": 540, "吸引力": 0
+            "发射模式": 0, "发射图层": "", "发射遮罩": "",
+            "目标模式": 0, "目标图层": "", "吸引力": 0
         }
     };
 
@@ -731,7 +726,7 @@
         debugLog("buildUI() starting...");
 
         var panel = (thisObj instanceof Panel) ? thisObj :
-            new Window("palette", "星空粒子生成器 v1.8", undefined, {resizeable: true});
+            new Window("palette", "星空粒子生成器 v1.9", undefined, {resizeable: true});
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
@@ -743,7 +738,7 @@
         titleRow.orientation = "row";
         titleRow.alignment = ["fill", "top"];
         titleRow.alignChildren = ["left", "center"];
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.8").preferredSize = [300, 24];
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.9").preferredSize = [300, 24];
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -904,46 +899,86 @@
         };
 
         // ==============================
-        //  发射区域（百分比滑块）
+        //  发射区域（模式 + 遮罩选取）
         // ==============================
         var emitGroup = paramGroup.add("panel");
-        emitGroup.text = " 发射区域 (Emit Zone, %)";
+        emitGroup.text = " 发射区域 (Emit Zone)";
         emitGroup.orientation = "column";
         emitGroup.alignChildren = ["fill", "top"];
         emitGroup.spacing = 4;
         emitGroup.margins = [8, 14, 8, 8];
 
-        // 左 右 一行（滑块 + 百分比）
         var ee1 = emitGroup.add("group");
         ee1.orientation = "row"; ee1.alignment = ["fill", "center"];
-        ee1.add("statictext", undefined, "左 (L%):").preferredSize = [50, 18];
-        var emitLSlider = ee1.add("slider", undefined, 0, 0, 100);
-        emitLSlider.preferredSize = [60, 20];
-        var emitLVal = ee1.add("statictext", undefined, "0%");
-        emitLVal.preferredSize = [28, 18];
-        ee1.add("statictext", undefined, "右 (R%):").preferredSize = [50, 18];
-        var emitRSlider = ee1.add("slider", undefined, 100, 0, 100);
-        emitRSlider.preferredSize = [60, 20];
-        var emitRVal = ee1.add("statictext", undefined, "100%");
-        emitRVal.preferredSize = [32, 18];
-        emitLSlider.onChanging = function() { emitLVal.text = Math.round(emitLSlider.value) + "%"; };
-        emitRSlider.onChanging = function() { emitRVal.text = Math.round(emitRSlider.value) + "%"; };
+        ee1.add("statictext", undefined, "模式:").preferredSize = [40, 18];
+        var emitModeDrop = ee1.add("dropdownlist", undefined, ["全合成", "遮罩范围"]);
+        emitModeDrop.selection = 0;
+        emitModeDrop.preferredSize = [90, 20];
 
-        // 上 下 一行（滑块 + 百分比）
+        // 遮罩选层行（初始隐藏，mode=1 时显示）
         var ee2 = emitGroup.add("group");
         ee2.orientation = "row"; ee2.alignment = ["fill", "center"];
-        ee2.add("statictext", undefined, "上 (T%):").preferredSize = [50, 18];
-        var emitTSlider = ee2.add("slider", undefined, 0, 0, 100);
-        emitTSlider.preferredSize = [60, 20];
-        var emitTVal = ee2.add("statictext", undefined, "0%");
-        emitTVal.preferredSize = [28, 18];
-        ee2.add("statictext", undefined, "下 (B%):").preferredSize = [50, 18];
-        var emitBSlider = ee2.add("slider", undefined, 100, 0, 100);
-        emitBSlider.preferredSize = [60, 20];
-        var emitBVal = ee2.add("statictext", undefined, "100%");
-        emitBVal.preferredSize = [32, 18];
-        emitTSlider.onChanging = function() { emitTVal.text = Math.round(emitTSlider.value) + "%"; };
-        emitBSlider.onChanging = function() { emitBVal.text = Math.round(emitBSlider.value) + "%"; };
+        var emitRefLabel = ee2.add("statictext", undefined, "图层:");
+        emitRefLabel.preferredSize = [40, 18];
+        var emitLayerDrop = ee2.add("dropdownlist", undefined, ["(刷新)"]);
+        emitLayerDrop.preferredSize = [-1, 20];
+        var emitMaskLabel = ee2.add("statictext", undefined, "遮罩:");
+        emitMaskLabel.preferredSize = [40, 18];
+        var emitMaskDrop = ee2.add("dropdownlist", undefined, ["-"]);
+        emitMaskDrop.preferredSize = [-1, 20];
+        var emitRefreshBtn = ee2.add("button", undefined, "R");
+        emitRefreshBtn.preferredSize = [22, 20];
+        ee2.visible = false;
+        // 初始颜色灰化
+        ee2.enabled = true;
+
+        // mode 切换显示遮罩行
+        emitModeDrop.onChange = function() {
+            ee2.visible = (emitModeDrop.selection && emitModeDrop.selection.index === 1);
+        };
+
+        // 刷新按钮
+        emitRefreshBtn.onClick = function() {
+            try {
+                var c = app.project.activeItem;
+                if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
+                var idx = emitLayerDrop.selection ? emitLayerDrop.selection.index : 0;
+                emitLayerDrop.removeAll();
+                for (var li = 1; li <= c.numLayers; li++) {
+                    emitLayerDrop.add("item", c.layer(li).name);
+                }
+                emitLayerDrop.selection = Math.min(idx, c.numLayers - 1);
+                // 填充遮罩
+                populateEmitMask(c);
+            } catch (e) {}
+        };
+
+        // 选图层时更新遮罩
+        emitLayerDrop.onChange = function() {
+            try {
+                var c = app.project.activeItem;
+                if (c && c instanceof CompItem) populateEmitMask(c);
+            } catch (e) {}
+        };
+
+        function populateEmitMask(comp) {
+            emitMaskDrop.removeAll();
+            try {
+                var sel = emitLayerDrop.selection;
+                if (!sel) { emitMaskDrop.add("item", "-"); return; }
+                var layer = comp.layer(sel.index + 1);
+                var maskParade = layer.property("ADBE Mask Parade");
+                if (!maskParade || maskParade.numProperties === 0) {
+                    emitMaskDrop.add("item", "(无遮罩)");
+                    return;
+                }
+                for (var mi = 1; mi <= maskParade.numProperties; mi++) {
+                    emitMaskDrop.add("item", maskParade.property(mi).name);
+                }
+            } catch (e) {
+                emitMaskDrop.add("item", "(错误)");
+            }
+        }
 
         // ==============================
         //  运动控制
@@ -993,20 +1028,38 @@
         speedMaxInput.preferredSize = [35, 20]; speedMaxInput.characters = 4;
         m3.add("statictext", undefined, " px/s").preferredSize = [35, 18];
 
-        // 目标吸引（v1.8）
+        // 目标吸引（v1.9: Null层选取）
         var m4 = motionGroup.add("group");
         m4.orientation = "row"; m4.alignment = ["fill", "center"];
-        m4.add("statictext", undefined, "目标 (Target%):").preferredSize = [85, 18];
-        var tXSlider = m4.add("slider", undefined, 50, 0, 100);
-        tXSlider.preferredSize = [50, 20];
-        var tXVal = m4.add("statictext", undefined, "50%");
-        tXVal.preferredSize = [32, 18];
-        var tYSlider = m4.add("slider", undefined, 50, 0, 100);
-        tYSlider.preferredSize = [50, 20];
-        var tYVal = m4.add("statictext", undefined, "50%");
-        tYVal.preferredSize = [32, 18];
-        tXSlider.onChanging = function() { tXVal.text = Math.round(tXSlider.value) + "%"; };
-        tYSlider.onChanging = function() { tYVal.text = Math.round(tYSlider.value) + "%"; };
+        m4.add("statictext", undefined, "目标:").preferredSize = [40, 18];
+        var targetModeDrop = m4.add("dropdownlist", undefined, ["无", "Null点"]);
+        targetModeDrop.selection = 0;
+        targetModeDrop.preferredSize = [70, 20];
+
+        var m4b = motionGroup.add("group");
+        m4b.orientation = "row"; m4b.alignment = ["fill", "center"];
+        var tgtLabel = m4b.add("statictext", undefined, "图层:");
+        tgtLabel.preferredSize = [40, 18];
+        var targetLayerDrop = m4b.add("dropdownlist", undefined, ["(刷新)"]);
+        targetLayerDrop.preferredSize = [-1, 20];
+        var tgtRefreshBtn = m4b.add("button", undefined, "R");
+        tgtRefreshBtn.preferredSize = [22, 20];
+        m4b.visible = false;
+
+        targetModeDrop.onChange = function() {
+            m4b.visible = (targetModeDrop.selection && targetModeDrop.selection.index === 1);
+        };
+        tgtRefreshBtn.onClick = function() {
+            try {
+                var c = app.project.activeItem;
+                if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
+                targetLayerDrop.removeAll();
+                for (var li = 1; li <= c.numLayers; li++) {
+                    targetLayerDrop.add("item", c.layer(li).name);
+                }
+                targetLayerDrop.selection = 0;
+            } catch (e) {}
+        };
 
         var m5 = motionGroup.add("group");
         m5.orientation = "row"; m5.alignment = ["fill", "center"];
@@ -1175,12 +1228,6 @@
         // ==============================
 
         function getUIParams() {
-            // 获取合成尺寸（用于百分比→像素转换）
-            var compW = 1920, compH = 1080;
-            try {
-                var c = app.project.activeItem;
-                if (c && c instanceof CompItem) { compW = c.width; compH = c.height; }
-            } catch (e) {}
             return {
                 count: Math.round(countSlider.value),
                 sizeMin: parseFloat(sizeMinInput.text) || 3,
@@ -1202,13 +1249,12 @@
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
                 seed: Math.round(seedSlider.value),
-                // v1.8 发射区域 + 目标吸引（百分比 → 像素）
-                emitL: Math.round(emitLSlider.value / 100 * (compW || 1920)),
-                emitR: Math.round(emitRSlider.value / 100 * (compW || 1920)),
-                emitT: Math.round(emitTSlider.value / 100 * (compH || 1080)),
-                emitB: Math.round(emitBSlider.value / 100 * (compH || 1080)),
-                tX: Math.round(tXSlider.value / 100 * (compW || 1920)),
-                tY: Math.round(tYSlider.value / 100 * (compH || 1080)),
+                // v1.9 发射模式 + 目标选取
+                emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
+                emitLayer: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitLayerDrop.selection) ? emitLayerDrop.selection.text : "",
+                emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection) ? emitMaskDrop.selection.text : "",
+                targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
+                targetLayer: (targetModeDrop.selection && targetModeDrop.selection.index === 1 && targetLayerDrop.selection) ? targetLayerDrop.selection.text : "",
                 attraction: Math.round(attractSlider.value)
             };
         }
@@ -1232,13 +1278,7 @@
             updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
             updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
             updateControllerSlider(controller, "随机种子", params.seed);
-            // v1.8 发射区域 + 目标吸引
-            updateControllerSlider(controller, "发射区左", params.emitL);
-            updateControllerSlider(controller, "发射区右", params.emitR);
-            updateControllerSlider(controller, "发射区上", params.emitT);
-            updateControllerSlider(controller, "发射区下", params.emitB);
-            updateControllerSlider(controller, "目标X", params.tX);
-            updateControllerSlider(controller, "目标Y", params.tY);
+            // v1.9 目标吸引
             updateControllerSlider(controller, "吸引力", params.attraction);
         }
 
@@ -1272,21 +1312,12 @@
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
-            // v1.8 发射区域 + 目标吸引（像素→百分比恢复）
-            var pW = 1920, pH = 1080;
-            try { var ac = app.project.activeItem; if (ac && ac instanceof CompItem) { pW = ac.width; pH = ac.height; } } catch (e) {}
-            emitLSlider.value = (preset["发射区左"] !== undefined ? preset["发射区左"] : 0) / pW * 100;
-            emitLVal.text = Math.round(emitLSlider.value) + "%";
-            emitRSlider.value = (preset["发射区右"] !== undefined ? preset["发射区右"] : 1920) / pW * 100;
-            emitRVal.text = Math.round(emitRSlider.value) + "%";
-            emitTSlider.value = (preset["发射区上"] !== undefined ? preset["发射区上"] : 0) / pH * 100;
-            emitTVal.text = Math.round(emitTSlider.value) + "%";
-            emitBSlider.value = (preset["发射区下"] !== undefined ? preset["发射区下"] : 1080) / pH * 100;
-            emitBVal.text = Math.round(emitBSlider.value) + "%";
-            tXSlider.value = (preset["目标X"] !== undefined ? preset["目标X"] : 960) / pW * 100;
-            tXVal.text = Math.round(tXSlider.value) + "%";
-            tYSlider.value = (preset["目标Y"] !== undefined ? preset["目标Y"] : 540) / pH * 100;
-            tYVal.text = Math.round(tYSlider.value) + "%";
+            // v1.9 发射模式 + 目标选取（预设恢复）
+            emitModeDrop.selection = preset["发射模式"] || 0;
+            if (emitModeDrop.selection && emitModeDrop.selection.index === 1) {
+                // 遮罩模式 — 需用户点击刷新
+            }
+            targetModeDrop.selection = preset["目标模式"] || 0;
             attractSlider.value = preset["吸引力"] || 0;
             attractValue.text = Math.round(attractSlider.value) + "%";
             try { updateColorSwatch(); } catch (e) {}
@@ -1460,7 +1491,7 @@
             debugLog("Generate: count=" + params.count + " shape=" + params.shape);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
-            generateParticles(comp, controller, params.count, params.shape);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer);
             setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
         }
 
@@ -1472,7 +1503,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0);
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "");
             setStatus(presetName + " 已应用");
         }
 
