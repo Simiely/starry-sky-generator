@@ -353,7 +353,7 @@
 
     // ==================== 表达式生成 ====================
 
-    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density) {
+    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density, attractDur, wrapAround) {
         if (density === undefined) density = 100;
         var p = []; // short alias
 
@@ -465,11 +465,15 @@
         p.push('}');
         p.push('var rawX = startX + vx * tLocal;');
         p.push('var rawY = startY + vy * tLocal;');
-        p.push('var wrapX = rawX % thisComp.width;');
-        p.push('var wrapY = rawY % thisComp.height;');
-        p.push('if (wrapX < 0) wrapX += thisComp.width;');
-        p.push('if (wrapY < 0) wrapY += thisComp.height;');
-        p.push('[wrapX, wrapY];');
+        if (wrapAround) {
+            p.push('var wrapX = rawX % thisComp.width;');
+            p.push('var wrapY = rawY % thisComp.height;');
+            p.push('if (wrapX < 0) wrapX += thisComp.width;');
+            p.push('if (wrapY < 0) wrapY += thisComp.height;');
+            p.push('[wrapX, wrapY];');
+        } else {
+            p.push('[rawX, rawY];');
+        }
         return p.join('\n');
     }
 
@@ -548,7 +552,7 @@
 
     // ==================== 粒子生成与清除 ====================
 
-    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, attractDur) {
+    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, attractDur, wrapAround) {
         debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
         if (shapeIdx === undefined) shapeIdx = 0;
 
@@ -568,7 +572,7 @@
             var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
             debugLog("  creating " + actualCount + " particles...");
 
-            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen);
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, attractDur, wrapAround);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
@@ -732,7 +736,7 @@
             var preset = JSON.parse(jsonStr);
             applyPresetToController(controller, preset);
             if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100, 2);
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100, 2, true);
             }
         } catch (e) {
             showErrorReport("加载预设失败", e.toString(), e, e.line);
@@ -1355,6 +1359,12 @@
             seedValue.text = r.toString();
         };
 
+        // 环绕开关
+        var f3 = fxGroup.add("group");
+        f3.orientation = "row"; f3.alignment = ["fill", "center"];
+        var wrapCheck = f3.add("checkbox", undefined, "环绕 (Wrap) - 出屏幕边界后绕回对面");
+        wrapCheck.value = true;
+
         // ==============================
         //  操作按钮
         // ==============================
@@ -1570,7 +1580,8 @@
                 targetLayer: (targetLayerDrop.selection && targetLayerDrop.selection.text.indexOf("(") !== 0) ? targetLayerDrop.selection.text : "",
                 targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
                 attractDur: parseFloat(attractDurInput.text) || 2,
-                attraction: Math.round(attractSlider.value)
+                attraction: Math.round(attractSlider.value),
+                wrapAround: wrapCheck.value
             };
         }
 
@@ -1812,7 +1823,7 @@
             debugLog("Generate: count=" + params.count + " shape=" + params.shape);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
-            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur, params.wrapAround);
             setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
         }
 
@@ -1824,7 +1835,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100, preset["吸引时长"] || 2);
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100, preset["吸引时长"] || 2, true);
             setStatus(presetName + " 已应用");
         }
 
