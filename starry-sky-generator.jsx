@@ -331,6 +331,8 @@
         addSliderToLayer(nullLayer, "最大尺寸", 15);
         addSliderToLayer(nullLayer, "初始大小(%)", 80);
         addSliderToLayer(nullLayer, "最终大小(%)", 100);
+        addSliderToLayer(nullLayer, "缩放最小变化(%)", 80);
+        addSliderToLayer(nullLayer, "缩放最大变化(%)", 120);
         addSliderToLayer(nullLayer, "色相(0-360)", 210);
         addSliderToLayer(nullLayer, "色相随机范围", 30);
         addSliderToLayer(nullLayer, "饱和度", 80);
@@ -593,6 +595,10 @@
             'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             'seedRandom(index + seedVal + 2000, true);',
             'var s = random(sizeMin, sizeMax);',
+            'var svMin = ctrl.effect("缩放最小变化(%)") ? ctrl.effect("缩放最小变化(%)")(1) : 80;',
+            'var svMax = ctrl.effect("缩放最大变化(%)") ? ctrl.effect("缩放最大变化(%)")(1) : 120;',
+            'seedRandom(index + seedVal + 9000, true);',
+            's = s * random(svMin, svMax) / 100;',
             'var dur = random(lifeMin, lifeMax);',
             'seedRandom(index + seedVal + 8000, true);',
             'var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;',
@@ -751,7 +757,7 @@
     }
 
     var builtInPresets = {
-        "经典星空": {
+            "经典星空": {
             "粒子数量": 300, "最小尺寸": 2, "最大尺寸": 10,
             "形状": 0,
             "色相(0-360)": 210, "色相随机范围": 20, "饱和度": 30, "亮度": 95,
@@ -762,10 +768,10 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
-            "初始大小%": 80, "最终大小%": 100,
+            "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 80, "缩放最大变化%": 120,
             "发射密度": 100, "发射随机偏移": 0
         },
-        "彩色星云": {
+            "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
             "形状": 0,
             "色相(0-360)": 0, "色相随机范围": 360, "饱和度": 80, "亮度": 85,
@@ -776,10 +782,10 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
-            "初始大小%": 50, "最终大小%": 100,
+            "初始大小%": 50, "最终大小%": 100, "缩放最小变化%": 50, "缩放最大变化%": 150,
             "发射密度": 100, "发射随机偏移": 0
         },
-        "极光飘动": {
+            "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
             "形状": 0,
             "色相(0-360)": 160, "色相随机范围": 60, "饱和度": 70, "亮度": 80,
@@ -790,10 +796,10 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
-            "初始大小%": 80, "最终大小%": 100,
+            "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 70, "缩放最大变化%": 130,
             "发射密度": 100, "发射随机偏移": 0
         },
-        "金色粒子雨": {
+            "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
             "形状": 1,
             "色相(0-360)": 45, "色相随机范围": 15, "饱和度": 90, "亮度": 75,
@@ -804,7 +810,7 @@
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
-            "初始大小%": 30, "最终大小%": 80,
+            "初始大小%": 30, "最终大小%": 80, "缩放最小变化%": 60, "缩放最大变化%": 140,
             "发射密度": 100, "发射随机偏移": 0
         }
     };
@@ -890,6 +896,17 @@
         var sizeFinalInput = r1d.add("edittext", undefined, "100");
         sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
         r1d.add("statictext", undefined, " %");
+
+        // 随机缩放行
+        var r1f = paramGroup.add("group");
+        r1f.orientation = "row"; r1f.alignment = ["fill", "center"];
+        r1f.add("statictext", undefined, "随机缩放: ~");
+        var svMinInput = r1f.add("edittext", undefined, "80");
+        svMinInput.preferredSize = [55, 20]; svMinInput.characters = 5;
+        r1f.add("statictext", undefined, "% ~");
+        var svMaxInput = r1f.add("edittext", undefined, "120");
+        svMaxInput.preferredSize = [55, 20]; svMaxInput.characters = 5;
+        r1f.add("statictext", undefined, " %");
 
         var r1c = paramGroup.add("group");
         r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
@@ -1548,6 +1565,8 @@
                 if (p.sizeMax !== undefined)    sizeMaxInput.text = p.sizeMax.toString();
                 if (p.sizeInit !== undefined)   sizeInitInput.text = p.sizeInit.toString();
                 if (p.sizeFinal !== undefined)  sizeFinalInput.text = p.sizeFinal.toString();
+                if (p.sizeVarMin !== undefined)  svMinInput.text = p.sizeVarMin.toString();
+                if (p.sizeVarMax !== undefined)  svMaxInput.text = p.sizeVarMax.toString();
                 if (p.shape !== undefined)      shapeDropdown.selection = p.shape;
                 if (p.hue !== undefined)        { hueSlider.value = Math.round(p.hue / 3.6); hueValue.text = Math.round(p.hue / 3.6).toString(); }
                 if (p.hueVar !== undefined)     { hueVarSlider.value = p.hueVar; hueVarValue.text = Math.round(p.hueVar).toString(); }
@@ -1603,6 +1622,8 @@
                 sizeMax: parseFloat(sizeMaxInput.text) || 15,
                 sizeInit: parseFloat(sizeInitInput.text) || 80,
                 sizeFinal: parseFloat(sizeFinalInput.text) || 100,
+                sizeVarMin: parseFloat(svMinInput.text) || 80,
+                sizeVarMax: parseFloat(svMaxInput.text) || 120,
                 shape: shapeDropdown.selection ? shapeDropdown.selection.index : 0,
                 hue: Math.round(hueSlider.value * 3.6), // % → 0-360
                 hueVar: Math.round(hueVarSlider.value),
@@ -1660,6 +1681,8 @@
             updateControllerSlider(controller, "发射密度", params.emitDen);
             updateControllerSlider(controller, "初始大小(%)", params.sizeInit);
             updateControllerSlider(controller, "最终大小(%)", params.sizeFinal);
+            updateControllerSlider(controller, "缩放最小变化(%)", params.sizeVarMin);
+            updateControllerSlider(controller, "缩放最大变化(%)", params.sizeVarMax);
             updateControllerSlider(controller, "发射随机偏移", params.emitOff);
         }
 
@@ -1668,6 +1691,8 @@
             sizeMaxInput.text = (preset["最大尺寸"] || 15).toString();
             sizeInitInput.text = (preset["初始大小%"] || 80).toString();
             sizeFinalInput.text = (preset["最终大小%"] || 100).toString();
+            svMinInput.text = (preset["缩放最小变化%"] || 80).toString();
+            svMaxInput.text = (preset["缩放最大变化%"] || 120).toString();
             var sv = preset["形状"];
             if (sv !== undefined) shapeDropdown.selection = sv;
             hueSlider.value = Math.round((preset["色相(0-360)"] || 210) / 3.6);
