@@ -356,7 +356,7 @@
         if (density === undefined) density = 100;
         var p = []; // short alias
 
-        function fx(name, def) { return 'ctrl.effect("' + name + '") ? ctrl.effect("' + name + '")(1) : ' + def; }
+        function fx(name, def) { return '(ctrl.effect("' + name + '") ? ctrl.effect("' + name + '")(1) : ' + def + ')'; }
 
         p.push('seedRandom(index, true);');
         p.push('');
