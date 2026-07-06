@@ -377,6 +377,15 @@
             parts.push('}');
             parts.push('if (mPts.length === 0) { mL = 0; mR = thisComp.width; mT = 0; mB = thisComp.height; }');
             parts.push('');
+            parts.push('// 图层偏移（遮罩坐标 → 合成坐标）');
+            parts.push('var offX = 0, offY = 0;');
+            parts.push('if (mLayer) {');
+            parts.push('    var lPos = mLayer.transform.position;');
+            parts.push('    var lAnc = mLayer.transform.anchorPoint;');
+            parts.push('    offX = lPos[0] - lAnc[0];');
+            parts.push('    offY = lPos[1] - lAnc[1];');
+            parts.push('}');
+            parts.push('');
             parts.push('// 射线法 Point-in-Polygon + 密度控制');
             parts.push('var emitDen = ctrl.effect("发射密度")(1);');
             parts.push('function ptInPoly(px, py, pts) {');
@@ -388,11 +397,11 @@
             parts.push('    }');
             parts.push('    return ins;');
             parts.push('}');
-            parts.push('var startX = mL, startY = mT, found = false;');
+            parts.push('var startX = offX + mL, startY = offY + mT, found = false;');
             parts.push('for (var att = 0; att < 100; att++) {');
             parts.push('    var tx = random(mL, mR); var ty = random(mT, mB);');
             parts.push('    if (ptInPoly(tx, ty, mPts) && random(0, 100) < emitDen) {');
-            parts.push('        startX = tx; startY = ty; found = true; break;');
+            parts.push('        startX = offX + tx; startY = offY + ty; found = true; break;');
             parts.push('    }');
             parts.push('}');
         } else {
