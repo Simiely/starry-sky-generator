@@ -802,11 +802,6 @@
                         colorSwatch.graphics.backgroundColor = brush;
                         colorSwatch.graphics.disabledBackgroundColor = brush;
                     }
-                } catch (eBrush) {}                    var brush = gfx.newBrush(brushType, [rColor, gColor, bColor]);
-                    if (brush) {
-                        colorSwatch.graphics.backgroundColor = brush;
-                        colorSwatch.graphics.disabledBackgroundColor = brush;
-                    }
                 } catch (e) {}
             } catch (e) {}
         }
