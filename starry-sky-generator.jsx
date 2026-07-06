@@ -1464,9 +1464,14 @@
         f4.add("statictext", undefined, "随机偏移:").preferredSize = [65, 18];
         var emitOffSlider = f4.add("slider", undefined, 0, 0, 6);
         emitOffSlider.preferredSize = [80, 20];
-        var emitOffValue = f4.add("statictext", undefined, "0s");
-        emitOffValue.preferredSize = [25, 18];
-        emitOffSlider.onChanging = function() { emitOffValue.text = Math.round(emitOffSlider.value * 10) / 10 + "s"; };
+        var emitOffValue = f4.add("edittext", undefined, "0");
+        emitOffValue.preferredSize = [35, 20]; emitOffValue.characters = 4;
+        f4.add("statictext", undefined, "s").preferredSize = [15, 18];
+        emitOffSlider.onChanging = function() { emitOffValue.text = (Math.round(emitOffSlider.value * 10) / 10).toString(); };
+        emitOffValue.onChange = function() {
+            var v = parseFloat(emitOffValue.text);
+            if (!isNaN(v)) { emitOffSlider.value = Math.max(0, Math.min(6, v)); }
+        };
 
         // ==============================
         //  操作按钮
@@ -1703,7 +1708,7 @@
                 attractDur: parseFloat(attractDurInput.text) || 2,
                 attraction: Math.round(attractSlider.value),
                 wrapAround: wrapCheck.value,
-                emitOff: Math.round(emitOffSlider.value * 10) / 10
+                emitOff: parseFloat(emitOffValue.text) || 0
             };
         }
 
