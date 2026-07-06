@@ -2027,8 +2027,12 @@
                     if (!saveFile) return;
                     var fileData = { version: "2.0", slots: {} };
                     for (var si = 0; si < 4; si++) {
-                        var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
-                        fileData.slots[SLOT_KEYS[si]] = js || "";
+                        try {
+                            var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
+                            fileData.slots[SLOT_KEYS[si]] = js || "";
+                        } catch (e) {
+                            fileData.slots[SLOT_KEYS[si]] = ""; // 空槽位
+                        }
                     }
                     saveFile.encoding = "UTF-8";
                     saveFile.open("w");
