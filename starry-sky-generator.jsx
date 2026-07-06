@@ -1425,11 +1425,11 @@
                 // v2.0 发射模式 + 目标选取
                 emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
                 emitLayer: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitLayerDrop.selection) ? emitLayerDrop.selection.text : "",
-                emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection) ? emitMaskDrop.selection.text : "",
+                emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection && emitMaskDrop.selection.text.indexOf("(") !== 0) ? emitMaskDrop.selection.text : "",
                 emitDen: Math.round(emitDenSlider.value),
                 targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
                 targetLayer: (targetLayerDrop.selection) ? targetLayerDrop.selection.text : "",
-                targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection) ? targetMaskDrop.selection.text : "",
+                targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
                 attraction: Math.round(attractSlider.value)
             };
         }
