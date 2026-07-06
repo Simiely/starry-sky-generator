@@ -388,7 +388,7 @@
             p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
             p.push('var eCycle = Math.floor(time / eLifeDur);');
             p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
-            p.push('var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
+            p.push('var rPt = ePts.length > 0 ? eLayer.toComp([random(eL, eR), random(eT, eB)]) : [random(eL, eR), random(eT, eB)];');
             p.push('var startX = rPt[0];');
             p.push('var startY = rPt[1];');
         } else {
@@ -434,7 +434,7 @@
             p.push('}');
             p.push('if (tPts.length === 0) { tL = 0; tR = 100; tT = 0; tB = 100; }');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
-            p.push('var tPt = tLayer.toComp([random(tL, tR), random(tT, tB)]);');
+            p.push('var tPt = tPts.length > 0 ? tLayer.toComp([random(tL, tR), random(tT, tB)]) : [random(tL, tR), random(tT, tB)];');
             p.push('var tX = tPt[0];');
             p.push('var tY = tPt[1];');
             p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
