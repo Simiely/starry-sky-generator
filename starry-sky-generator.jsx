@@ -1137,6 +1137,22 @@
         var preset4Btn = presetRow2.add("button", undefined, "金色粒子雨");
         preset4Btn.preferredSize = [-1, 24];
 
+        // 预设粒子数量（独立滑块）
+        var presetCountRow = presetPanel.add("group");
+        presetCountRow.orientation = "row"; presetCountRow.alignment = ["fill", "center"];
+        presetCountRow.add("statictext", undefined, "预设数量:").preferredSize = [65, 18];
+        var presetCountSlider = presetCountRow.add("slider", undefined, 200, 10, 2000);
+        presetCountSlider.preferredSize = [100, 20];
+        var presetCountValue = presetCountRow.add("edittext", undefined, "200");
+        presetCountValue.preferredSize = [35, 20]; presetCountValue.characters = 4;
+        presetCountSlider.onChanging = function() {
+            presetCountValue.text = Math.round(presetCountSlider.value).toString();
+        };
+        presetCountValue.onChange = function() {
+            var v = parseInt(presetCountValue.text);
+            if (!isNaN(v)) presetCountSlider.value = Math.max(10, Math.min(2000, v));
+        };
+
         // ==============================
         //  UI 辅助函数
         // ==============================
@@ -1425,7 +1441,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(countSlider.value), preset["形状"] || 0);
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0);
             setStatus(presetName + " 已应用");
         }
 
