@@ -352,7 +352,7 @@
 
     // ==================== 表达式生成 ====================
 
-    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, density) {
+    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density) {
         if (density === undefined) density = 100;
         var parts = ['seedRandom(index, true);', ''];
         parts.push('var ctrl = thisComp.layer("Ctrl_Starfield");');
@@ -419,6 +419,33 @@
             parts.push('');
             parts.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
             parts.push('var tX = tPos[0], tY = tPos[1];');
+            parts.push('var attraction = ctrl.effect("吸引力")(1) / 100;');
+        } else if (targetMode === 2 && targetLayer && targetMask) {
+            parts.push('');
+            parts.push('var tLayer = thisComp.layer("' + targetLayer + '");');
+            parts.push('var tMPts = [];');
+            parts.push('if (tLayer) {');
+            parts.push('    var tMMask = tLayer.mask("' + targetMask + '");');
+            parts.push('    if (tMMask) {');
+            parts.push('        var tMPath = tMMask.maskPath;');
+            parts.push('        if (tMPath && tMPath.vertices) tMPts = tMPath.vertices;');
+            parts.push('    }');
+            parts.push('}');
+            parts.push('var tOffX = 0, tOffY = 0;');
+            parts.push('if (tLayer) {');
+            parts.push('    tOffX = tLayer.transform.position[0] - tLayer.transform.anchorPoint[0];');
+            parts.push('    tOffY = tLayer.transform.position[1] - tLayer.transform.anchorPoint[1];');
+            parts.push('}');
+            parts.push('var tML = 99999, tMR = -99999, tMT = 99999, tMB = -99999;');
+            parts.push('for (var tvi = 0; tvi < tMPts.length; tvi++) {');
+            parts.push('    var tvx = tMPts[tvi][0], tvy = tMPts[tvi][1];');
+            parts.push('    if (tvx < tML) tML = tvx; if (tvx > tMR) tMR = tvx;');
+            parts.push('    if (tvy < tMT) tMT = tvy; if (tvy > tMB) tMB = tvy;');
+            parts.push('}');
+            parts.push('if (tMPts.length === 0) { tML = 0; tMR = 100; tMT = 0; tMB = 100; }');
+            parts.push('seedRandom(index + seedVal + 5000, true);');
+            parts.push('var tX = tOffX + random(tML, tMR);');
+            parts.push('var tY = tOffY + random(tMT, tMB);');
             parts.push('var attraction = ctrl.effect("吸引力")(1) / 100;');
         } else {
             parts.push('');
@@ -520,7 +547,7 @@
 
     // ==================== 粒子生成与清除 ====================
 
-    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, emitDen) {
+    function generateParticles(comp, controller, count, shapeIdx, emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen) {
         debugLog("generateParticles() count=" + count + " shape=" + shapeIdx);
         if (shapeIdx === undefined) shapeIdx = 0;
 
@@ -540,7 +567,7 @@
             var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
             debugLog("  creating " + actualCount + " particles...");
 
-            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, emitDen);
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
@@ -704,7 +731,7 @@
             var preset = JSON.parse(jsonStr);
             applyPresetToController(controller, preset);
             if (confirm("预设已加载。是否重新生成粒子？")) {
-                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", 100);
+                generateParticles(comp, controller, Math.round(getControllerSliderValue(controller, "粒子数量")), 0, 0, "", "", 0, "", "", 100);
             }
         } catch (e) {
             showErrorReport("加载预设失败", e.toString(), e, e.line);
@@ -721,7 +748,7 @@
             "淡入时长(秒)": 0.3, "淡出时长(秒)": 0.5,
             "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "发射密度": 100
         },
         "彩色星云": {
@@ -733,7 +760,7 @@
             "淡入时长(秒)": 0.2, "淡出时长(秒)": 1,
             "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "发射密度": 100
         },
         "极光飘动": {
@@ -745,7 +772,7 @@
             "淡入时长(秒)": 0.5, "淡出时长(秒)": 1.5,
             "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "发射密度": 100
         },
         "金色粒子雨": {
@@ -757,7 +784,7 @@
             "淡入时长(秒)": 0.1, "淡出时长(秒)": 0.3,
             "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256,
             "发射模式": 0, "发射图层": "", "发射遮罩": "",
-            "目标模式": 0, "目标图层": "", "吸引力": 0,
+            "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "发射密度": 100
         }
     };
@@ -1115,7 +1142,7 @@
         var m4 = motionGroup.add("group");
         m4.orientation = "row"; m4.alignment = ["fill", "center"];
         m4.add("statictext", undefined, "目标:").preferredSize = [40, 18];
-        var targetModeDrop = m4.add("dropdownlist", undefined, ["无", "Null点"]);
+        var targetModeDrop = m4.add("dropdownlist", undefined, ["无", "Null点", "遮罩范围"]);
         targetModeDrop.selection = 0;
         targetModeDrop.preferredSize = [70, 20];
 
@@ -1129,9 +1156,21 @@
         tgtRefreshBtn.preferredSize = [22, 20];
         m4b.visible = false;
 
+        // 目标遮罩选取行
+        var m4c = motionGroup.add("group");
+        m4c.orientation = "row"; m4c.alignment = ["fill", "center"];
+        var tgtMaskLabel = m4c.add("statictext", undefined, "遮罩:");
+        tgtMaskLabel.preferredSize = [40, 18];
+        var targetMaskDrop = m4c.add("dropdownlist", undefined, ["-"]);
+        targetMaskDrop.preferredSize = [-1, 20];
+        var tgtMaskRefreshBtn = m4c.add("button", undefined, "R");
+        tgtMaskRefreshBtn.preferredSize = [22, 20];
+        m4c.visible = false;
+
         targetModeDrop.onChange = function() {
-            var isTgt = (targetModeDrop.selection && targetModeDrop.selection.index === 1);
-            m4b.visible = isTgt;
+            var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
+            m4b.visible = (idx === 1);
+            m4c.visible = (idx === 2);
             updateTargetStatus();
         };
         tgtRefreshBtn.onClick = function() {
@@ -1143,20 +1182,54 @@
                     targetLayerDrop.add("item", c.layer(li).name);
                 }
                 targetLayerDrop.selection = 0;
+                populateTargetMask(c);
                 updateTargetStatus();
             } catch (e) {}
         };
 
+        tgtMaskRefreshBtn.onClick = function() {
+            try {
+                var c = app.project.activeItem;
+                if (c && c instanceof CompItem) populateTargetMask(c);
+            } catch (e) {}
+        };
+
+        targetLayerDrop.onChange = function() {
+            try {
+                var c = app.project.activeItem;
+                if (c && c instanceof CompItem) populateTargetMask(c);
+                updateTargetStatus();
+            } catch (e) {}
+        };
+        targetMaskDrop.onChange = function() { updateTargetStatus(); };
+
+        function populateTargetMask(comp) {
+            targetMaskDrop.removeAll();
+            try {
+                var sel = targetLayerDrop.selection;
+                if (!sel) { targetMaskDrop.add("item", "-"); return; }
+                var layer = comp.layer(sel.index + 1);
+                var mp = layer.property("ADBE Mask Parade");
+                if (!mp || mp.numProperties === 0) { targetMaskDrop.add("item", "(无遮罩)"); return; }
+                for (var mi = 1; mi <= mp.numProperties; mi++) {
+                    targetMaskDrop.add("item", mp.property(mi).name);
+                }
+            } catch (e) { targetMaskDrop.add("item", "(错误)"); }
+        }
+
         var tgtStatus = motionGroup.add("statictext", undefined, "");
         tgtStatus.preferredSize = [-1, 16];
-        targetLayerDrop.onChange = function() { updateTargetStatus(); };
         function updateTargetStatus() {
             try {
-                if (!targetModeDrop.selection || targetModeDrop.selection.index !== 1) {
-                    tgtStatus.text = "";
-                    return;
+                var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
+                if (idx === 0) { tgtStatus.text = ""; return; }
+                var n = "-";
+                if (idx === 1) n = targetLayerDrop.selection ? targetLayerDrop.selection.text : "-";
+                else if (idx === 2) {
+                    var l = targetLayerDrop.selection ? targetLayerDrop.selection.text : "-";
+                    var m = targetMaskDrop.selection ? targetMaskDrop.selection.text : "-";
+                    n = l + " \u2192 " + m;
                 }
-                var n = targetLayerDrop.selection ? targetLayerDrop.selection.text : "-";
                 tgtStatus.text = "\u2713 \u76ee\u6807: " + n;
             } catch (e) {}
         }
@@ -1355,7 +1428,8 @@
                 emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection) ? emitMaskDrop.selection.text : "",
                 emitDen: Math.round(emitDenSlider.value),
                 targetMode: targetModeDrop.selection ? targetModeDrop.selection.index : 0,
-                targetLayer: (targetModeDrop.selection && targetModeDrop.selection.index === 1 && targetLayerDrop.selection) ? targetLayerDrop.selection.text : "",
+                targetLayer: (targetLayerDrop.selection) ? targetLayerDrop.selection.text : "",
+                targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection) ? targetMaskDrop.selection.text : "",
                 attraction: Math.round(attractSlider.value)
             };
         }
@@ -1595,7 +1669,7 @@
             debugLog("Generate: count=" + params.count + " shape=" + params.shape);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
-            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.emitDen);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen);
             setStatus(params.count + " 粒子 (形状=" + params.shape + ")");
         }
 
@@ -1607,7 +1681,7 @@
             applyPresetToUI(preset);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["发射密度"] || 100);
+            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100);
             setStatus(presetName + " 已应用");
         }
 
