@@ -352,7 +352,7 @@
 
     // ==================== 表达式生成 ====================
 
-    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density) {
+    function buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, density, eOffX, eOffY, tOffX, tOffY) {
         if (density === undefined) density = 100;
         var p = []; // short alias
 
@@ -381,14 +381,9 @@
             p.push('    if (vy < eT) eT = vy; if (vy > eB) eB = vy;');
             p.push('}');
             p.push('if (ePts.length === 0) { eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; }');
-            p.push('var eOffX = 0, eOffY = 0;');
-            p.push('if (eLayer) {');
-            p.push('    eOffX = eLayer.transform.position[0] - eLayer.transform.anchorPoint[0];');
-            p.push('    eOffY = eLayer.transform.position[1] - eLayer.transform.anchorPoint[1];');
-            p.push('}');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
-            p.push('var startX = eOffX + random(eL, eR);');
-            p.push('var startY = eOffY + random(eT, eB);');
+            p.push('var startX = ' + eOffX + ' + random(eL, eR);');
+            p.push('var startY = ' + eOffY + ' + random(eT, eB);');
         } else {
             p.push('var startX = random(0, thisComp.width);');
             p.push('var startY = random(0, thisComp.height);');
@@ -425,14 +420,9 @@
             p.push('    if (tvy < tT) tT = tvy; if (tvy > tB) tB = tvy;');
             p.push('}');
             p.push('if (tPts.length === 0) { tL = 0; tR = 100; tT = 0; tB = 100; }');
-            p.push('var tOffX = 0, tOffY = 0;');
-            p.push('if (tLayer) {');
-            p.push('    tOffX = tLayer.transform.position[0] - tLayer.transform.anchorPoint[0];');
-            p.push('    tOffY = tLayer.transform.position[1] - tLayer.transform.anchorPoint[1];');
-            p.push('}');
             p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
-            p.push('var tX = tOffX + random(tL, tR);');
-            p.push('var tY = tOffY + random(tT, tB);');
+            p.push('var tX = ' + tOffX + ' + random(tL, tR);');
+            p.push('var tY = ' + tOffY + ' + random(tT, tB);');
             p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
         } else {
             p.push('');
@@ -554,7 +544,28 @@
             var actualCount = Math.max(1, Math.min(2000, Math.round(count)));
             debugLog("  creating " + actualCount + " particles...");
 
-            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen);
+            // 预计算遮罩图层偏移（ExtendScript 侧，结果硬编码进表达式）
+            var emitOffX = 0, emitOffY = 0, tOffX = 0, tOffY = 0;
+            try {
+                if (emitMode === 1 && emitLayer) {
+                    var eLay = comp.layer(emitLayer);
+                    var ePos = eLay.property("Position").value;
+                    var eAnc = eLay.property("Anchor Point").value;
+                    emitOffX = ePos[0] - eAnc[0];
+                    emitOffY = ePos[1] - eAnc[1];
+                }
+                if ((targetMode === 1 || targetMode === 2) && targetLayer) {
+                    var tLay = comp.layer(targetLayer);
+                    var tPos = tLay.property("Position").value;
+                    var tAnc = tLay.property("Anchor Point").value;
+                    tOffX = tPos[0] - tAnc[0];
+                    tOffY = tPos[1] - tAnc[1];
+                }
+            } catch (e) {
+                debugLog("  offset calc error: " + e.toString());
+            }
+
+            var posExpr = buildPositionExpression(emitMode, emitLayer, emitMask, targetMode, targetLayer, targetMask, emitDen, emitOffX, emitOffY, tOffX, tOffY);
             var opacityExpr = buildOpacityExpression();
             var scaleExpr = buildScaleExpression();
             var colorExpr = buildColorExpression();
