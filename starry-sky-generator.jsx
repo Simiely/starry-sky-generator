@@ -978,6 +978,15 @@
         shapeDropdown.selection = 0;
         shapeDropdown.preferredSize = [120, 20];
 
+        var r1e = paramGroup.add("group");
+        r1e.orientation = "row"; r1e.alignment = ["fill", "center"];
+        r1e.add("statictext", undefined, "颜色:").preferredSize = [50, 18];
+        var colorSwatch = r1e.add("panel");
+        colorSwatch.preferredSize = [18, 18];
+        colorSwatch.alignment = ["left", "center"];
+        var pickBtn = r1e.add("button", undefined, "\u2026");
+        pickBtn.preferredSize = [22, 20];
+
         var r2 = paramGroup.add("group");
         r2.orientation = "row"; r2.alignment = ["fill", "center"];
 
@@ -996,13 +1005,6 @@
         var satValue = r2.add("edittext", undefined, "80");
         satValue.preferredSize = [35, 20]; satValue.characters = 3;
         r2.add("statictext", undefined, "%").preferredSize = [12, 18];
-
-        // 颜色预览方块 + 选取器
-        var colorSwatch = r2.add("panel");
-        colorSwatch.preferredSize = [18, 18];
-        colorSwatch.alignment = ["left", "center"];
-        var pickBtn = r2.add("button", undefined, "\u2026");
-        pickBtn.preferredSize = [22, 20];
 
         // 第二行：亮度 + 色相扩散
         var r2b = paramGroup.add("group");
