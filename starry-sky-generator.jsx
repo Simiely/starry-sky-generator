@@ -1387,11 +1387,12 @@
         var twinkleStrValue = f1.add("edittext", undefined, "50");
         twinkleStrValue.preferredSize = [55, 20]; twinkleStrValue.characters = 5;
         f1.add("statictext", undefined, "%").preferredSize = [20, 18];
-        f1.add("statictext", undefined, " 速度:");
+        f1.add("statictext", undefined, " 速度:").preferredSize = [50, 18];
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
         twinkleSpdSlider.preferredSize = [50, 20];
         var twinkleSpdValue = f1.add("edittext", undefined, "2");
         twinkleSpdValue.preferredSize = [55, 20]; twinkleSpdValue.characters = 5;
+        f1.add("statictext", undefined, "度").preferredSize = [20, 18];
         twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString(); };
         twinkleStrValue.onChange = function() { var v = parseInt(twinkleStrValue.text); if (!isNaN(v)) twinkleStrSlider.value = Math.max(0, Math.min(100, v)); };
         twinkleSpdSlider.onChanging = function() { twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10; };
