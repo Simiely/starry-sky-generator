@@ -959,7 +959,7 @@
         r1b.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
         var sizeMaxInput = r1b.add("edittext", undefined, "15");
         sizeMaxInput.preferredSize = [55, 20]; sizeMaxInput.characters = 5;
-        r1b.add("statictext", undefined, " px (像素)").preferredSize = [25, 18];
+        r1b.add("statictext", undefined, " px (像素)").preferredSize = [55, 18];
 
         var r1d = paramGroup.add("group");
         r1d.orientation = "row"; r1d.alignment = ["fill", "center"];
@@ -1213,7 +1213,7 @@
         dirSlider.preferredSize = [100, 20];
         var dirValue = m1.add("edittext", undefined, "270");
         dirValue.preferredSize = [55, 20]; dirValue.characters = 5;
-        m1.add("statictext", undefined, " deg (角度)").preferredSize = [30, 18];
+        m1.add("statictext", undefined, " deg (角度)").preferredSize = [55, 18];
         dirSlider.onChanging = function() { dirValue.text = Math.round(dirSlider.value).toString(); };
         dirValue.onChange = function() {
             var v = parseInt(dirValue.text);
@@ -1242,7 +1242,7 @@
         m3.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
         var speedMaxInput = m3.add("edittext", undefined, "100");
         speedMaxInput.preferredSize = [55, 20]; speedMaxInput.characters = 5;
-        m3.add("statictext", undefined, " px/s (像素/秒)").preferredSize = [35, 18];
+        m3.add("statictext", undefined, " px/s (像素/秒)").preferredSize = [65, 18];
 
         // 目标吸引（v2.0: Null层选取）
         var m4 = motionGroup.add("group");
@@ -1392,7 +1392,7 @@
         l1.add("statictext", undefined, " ~ ").preferredSize = [20, 18];
         var lifeMaxInput = l1.add("edittext", undefined, "6");
         lifeMaxInput.preferredSize = [55, 20]; lifeMaxInput.characters = 5;
-        l1.add("statictext", undefined, " s (秒)").preferredSize = [25, 18];
+        l1.add("statictext", undefined, " s (秒)").preferredSize = [40, 18];
 
         var l2 = lifeGroup.add("group");
         l2.orientation = "row"; l2.alignment = ["fill", "center"];
@@ -1402,7 +1402,7 @@
         l2.add("statictext", undefined, " s  淡出:").preferredSize = [60, 18];
         var fadeOutInput = l2.add("edittext", undefined, "0.8");
         fadeOutInput.preferredSize = [55, 20]; fadeOutInput.characters = 5;
-        l2.add("statictext", undefined, " s (秒)").preferredSize = [15, 18];
+        l2.add("statictext", undefined, " s (秒)").preferredSize = [40, 18];
 
         // ==============================
         //  高级效果
@@ -1470,7 +1470,7 @@
         emitOffSlider.preferredSize = [80, 20];
         var emitOffValue = f4.add("edittext", undefined, "0");
         emitOffValue.preferredSize = [55, 20]; emitOffValue.characters = 5;
-        f4.add("statictext", undefined, "s (秒)").preferredSize = [15, 18];
+        f4.add("statictext", undefined, "s (秒)").preferredSize = [35, 18];
         emitOffSlider.onChanging = function() { emitOffValue.text = (Math.round(emitOffSlider.value * 10) / 10).toString(); };
         emitOffValue.onChange = function() {
             var v = parseFloat(emitOffValue.text);
