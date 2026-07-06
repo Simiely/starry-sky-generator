@@ -1,5 +1,5 @@
 /* ============================================================
-   星空粒子生成器  v1.7
+   星空粒子生成器  v1.8
    Starry Sky Particle Generator for Adobe After Effects 2026
 
    基于 v1.4 Solid 方案，新增形状选择
@@ -302,6 +302,14 @@
         addSliderToLayer(nullLayer, "闪烁强度", 20);
         addSliderToLayer(nullLayer, "闪烁速度", 2);
         addSliderToLayer(nullLayer, "随机种子", 42);
+        // === v1.8 发射区域 + 目标吸引 ===
+        addSliderToLayer(nullLayer, "发射区左", 0);
+        addSliderToLayer(nullLayer, "发射区右", 1920);
+        addSliderToLayer(nullLayer, "发射区上", 0);
+        addSliderToLayer(nullLayer, "发射区下", 1080);
+        addSliderToLayer(nullLayer, "目标X", 960);
+        addSliderToLayer(nullLayer, "目标Y", 540);
+        addSliderToLayer(nullLayer, "吸引力", 0);
         return nullLayer;
     }
 
@@ -354,22 +362,47 @@
             'seedRandom(index, true);',
             '',
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
+            '',
+            '// 发射区域',
+            'var emitL = ctrl.effect("发射区左")(1);',
+            'var emitR = ctrl.effect("发射区右")(1);',
+            'var emitT = ctrl.effect("发射区上")(1);',
+            'var emitB = ctrl.effect("发射区下")(1);',
+            '',
+            '// 运动方向与速度',
             'var dirBase = ctrl.effect("运动方向(度)")(1);',
             'var dirSpread = ctrl.effect("方向随机范围")(1);',
             'var speedMin = ctrl.effect("最小速度")(1);',
             'var speedMax = ctrl.effect("最大速度")(1);',
+            '',
+            '// 目标吸引',
+            'var tX = ctrl.effect("目标X")(1);',
+            'var tY = ctrl.effect("目标Y")(1);',
+            'var attraction = ctrl.effect("吸引力")(1) / 100;',
+            '',
             'var seedVal = ctrl.effect("随机种子")(1);',
             '',
             'seedRandom(index + seedVal, true);',
             '',
-            'var startX = random(0, thisComp.width);',
-            'var startY = random(0, thisComp.height);',
+            '// ① 起点：在发射区内随机取点',
+            'var startX = random(emitL, emitR);',
+            'var startY = random(emitT, emitB);',
+            '',
+            '// ② 随机漂移分量（当前星空行为）',
             'var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));',
             'var speed = random(speedMin, speedMax);',
+            'var driftX = Math.cos(angle) * speed * time;',
+            'var driftY = Math.sin(angle) * speed * time;',
             '',
-            'var rawX = startX + Math.cos(angle) * speed * time;',
-            'var rawY = startY + Math.sin(angle) * speed * time;',
+            '// ③ 目标吸引分量（v1.8 新增）',
+            'var pullX = (tX - startX) * attraction * Math.min(1, time / 2);',
+            'var pullY = (tY - startY) * attraction * Math.min(1, time / 2);',
             '',
+            '// 合成最终位置',
+            'var rawX = startX + driftX + pullX;',
+            'var rawY = startY + driftY + pullY;',
+            '',
+            '// Wrap-around 边界循环',
             'var wrapX = rawX % thisComp.width;',
             'var wrapY = rawY % thisComp.height;',
             'if (wrapX < 0) wrapX += thisComp.width;',
@@ -653,7 +686,9 @@
             "运动方向(度)": 270, "方向随机范围": 30, "最小速度": 10, "最大速度": 40,
             "最小生命周期(秒)": 3, "最大生命周期(秒)": 8,
             "淡入时长(秒)": 0.3, "淡出时长(秒)": 0.5,
-            "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42
+            "闪烁强度": 25, "闪烁速度": 1.5, "随机种子": 42,
+            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
+            "目标X": 960, "目标Y": 540, "吸引力": 0
         },
         "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -662,7 +697,9 @@
             "运动方向(度)": 0, "方向随机范围": 360, "最小速度": 5, "最大速度": 30,
             "最小生命周期(秒)": 1, "最大生命周期(秒)": 5,
             "淡入时长(秒)": 0.2, "淡出时长(秒)": 1,
-            "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123
+            "闪烁强度": 40, "闪烁速度": 3, "随机种子": 123,
+            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
+            "目标X": 960, "目标Y": 540, "吸引力": 0
         },
         "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -671,7 +708,9 @@
             "运动方向(度)": 90, "方向随机范围": 20, "最小速度": 20, "最大速度": 80,
             "最小生命周期(秒)": 2, "最大生命周期(秒)": 4,
             "淡入时长(秒)": 0.5, "淡出时长(秒)": 1.5,
-            "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777
+            "闪烁强度": 15, "闪烁速度": 2, "随机种子": 777,
+            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
+            "目标X": 960, "目标Y": 540, "吸引力": 0
         },
         "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -680,7 +719,9 @@
             "运动方向(度)": 180, "方向随机范围": 15, "最小速度": 80, "最大速度": 200,
             "最小生命周期(秒)": 1.5, "最大生命周期(秒)": 3,
             "淡入时长(秒)": 0.1, "淡出时长(秒)": 0.3,
-            "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256
+            "闪烁强度": 10, "闪烁速度": 4, "随机种子": 256,
+            "发射区左": 0, "发射区右": 1920, "发射区上": 0, "发射区下": 1080,
+            "目标X": 960, "目标Y": 540, "吸引力": 0
         }
     };
 
@@ -690,7 +731,7 @@
         debugLog("buildUI() starting...");
 
         var panel = (thisObj instanceof Panel) ? thisObj :
-            new Window("palette", "星空粒子生成器 v1.7", undefined, {resizeable: true});
+            new Window("palette", "星空粒子生成器 v1.8", undefined, {resizeable: true});
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
@@ -702,7 +743,7 @@
         titleRow.orientation = "row";
         titleRow.alignment = ["fill", "top"];
         titleRow.alignChildren = ["left", "center"];
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.7").preferredSize = [300, 24];
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v1.8").preferredSize = [300, 24];
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -863,6 +904,36 @@
         };
 
         // ==============================
+        //  发射区域
+        // ==============================
+        var emitGroup = paramGroup.add("panel");
+        emitGroup.text = " 发射区域 (Emit Zone) ";
+        emitGroup.orientation = "column";
+        emitGroup.alignChildren = ["fill", "top"];
+        emitGroup.spacing = 4;
+        emitGroup.margins = [8, 14, 8, 8];
+
+        // 左 右 一行
+        var ee1 = emitGroup.add("group");
+        ee1.orientation = "row"; ee1.alignment = ["fill", "center"];
+        ee1.add("statictext", undefined, "左 (L):").preferredSize = [50, 18];
+        var emitLInput = ee1.add("edittext", undefined, "0");
+        emitLInput.preferredSize = [40, 20]; emitLInput.characters = 4;
+        ee1.add("statictext", undefined, " 右 (R):").preferredSize = [50, 18];
+        var emitRInput = ee1.add("edittext", undefined, "1920");
+        emitRInput.preferredSize = [40, 20]; emitRInput.characters = 4;
+
+        // 上 下 一行
+        var ee2 = emitGroup.add("group");
+        ee2.orientation = "row"; ee2.alignment = ["fill", "center"];
+        ee2.add("statictext", undefined, "上 (T):").preferredSize = [50, 18];
+        var emitTInput = ee2.add("edittext", undefined, "0");
+        emitTInput.preferredSize = [40, 20]; emitTInput.characters = 4;
+        ee2.add("statictext", undefined, " 下 (B):").preferredSize = [50, 18];
+        var emitBInput = ee2.add("edittext", undefined, "1080");
+        emitBInput.preferredSize = [40, 20]; emitBInput.characters = 4;
+
+        // ==============================
         //  运动控制
         // ==============================
         var motionGroup = panel.add("panel");
@@ -909,6 +980,28 @@
         var speedMaxInput = m3.add("edittext", undefined, "100");
         speedMaxInput.preferredSize = [35, 20]; speedMaxInput.characters = 4;
         m3.add("statictext", undefined, " px/s").preferredSize = [35, 18];
+
+        // 目标吸引（v1.8）
+        var m4 = motionGroup.add("group");
+        m4.orientation = "row"; m4.alignment = ["fill", "center"];
+        m4.add("statictext", undefined, "目标 (Target):").preferredSize = [80, 18];
+        var tXInput = m4.add("edittext", undefined, "960");
+        tXInput.preferredSize = [35, 20]; tXInput.characters = 4;
+        m4.add("statictext", undefined, " , ").preferredSize = [15, 18];
+        var tYInput = m4.add("edittext", undefined, "540");
+        tYInput.preferredSize = [35, 20]; tYInput.characters = 4;
+
+        var m5 = motionGroup.add("group");
+        m5.orientation = "row"; m5.alignment = ["fill", "center"];
+        m5.add("statictext", undefined, "吸引力:").preferredSize = [60, 18];
+        var attractSlider = m5.add("slider", undefined, 0, 0, 100);
+        attractSlider.preferredSize = [80, 20];
+        var attractValue = m5.add("statictext", undefined, "0%");
+        attractValue.preferredSize = [30, 18];
+        var attractReset = m5.add("button", undefined, "0");
+        attractReset.preferredSize = [30, 20];
+        attractSlider.onChanging = function() { attractValue.text = Math.round(attractSlider.value) + "%"; };
+        attractReset.onClick = function() { attractSlider.value = 0; attractValue.text = "0%"; };
 
         // ==============================
         //  生命周期
@@ -1069,7 +1162,15 @@
                 twinkleEnabled: twinkleCheck.value,
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
-                seed: Math.round(seedSlider.value)
+                seed: Math.round(seedSlider.value),
+                // v1.8 发射区域 + 目标吸引
+                emitL: parseFloat(emitLInput.text) || 0,
+                emitR: parseFloat(emitRInput.text) || 1920,
+                emitT: parseFloat(emitTInput.text) || 0,
+                emitB: parseFloat(emitBInput.text) || 1080,
+                tX: parseFloat(tXInput.text) || 960,
+                tY: parseFloat(tYInput.text) || 540,
+                attraction: Math.round(attractSlider.value)
             };
         }
 
@@ -1092,6 +1193,14 @@
             updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
             updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
             updateControllerSlider(controller, "随机种子", params.seed);
+            // v1.8 发射区域 + 目标吸引
+            updateControllerSlider(controller, "发射区左", params.emitL);
+            updateControllerSlider(controller, "发射区右", params.emitR);
+            updateControllerSlider(controller, "发射区上", params.emitT);
+            updateControllerSlider(controller, "发射区下", params.emitB);
+            updateControllerSlider(controller, "目标X", params.tX);
+            updateControllerSlider(controller, "目标Y", params.tY);
+            updateControllerSlider(controller, "吸引力", params.attraction);
         }
 
         function applyPresetToUI(preset) {
@@ -1126,6 +1235,15 @@
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
+            // v1.8 发射区域 + 目标吸引（预设恢复）
+            emitLInput.text = (preset["发射区左"] !== undefined ? preset["发射区左"] : 0).toString();
+            emitRInput.text = (preset["发射区右"] !== undefined ? preset["发射区右"] : 1920).toString();
+            emitTInput.text = (preset["发射区上"] !== undefined ? preset["发射区上"] : 0).toString();
+            emitBInput.text = (preset["发射区下"] !== undefined ? preset["发射区下"] : 1080).toString();
+            tXInput.text = (preset["目标X"] !== undefined ? preset["目标X"] : 960).toString();
+            tYInput.text = (preset["目标Y"] !== undefined ? preset["目标Y"] : 540).toString();
+            attractSlider.value = preset["吸引力"] || 0;
+            attractValue.text = Math.round(attractSlider.value) + "%";
             try { updateColorSwatch(); } catch (e) {}
         }
 
