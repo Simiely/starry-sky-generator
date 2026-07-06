@@ -231,6 +231,37 @@
         }
     }
 
+    function addPolygonMask(solid, sides) {
+        try {
+            var maskGroup = solid.property("ADBE Mask Parade");
+            if (!maskGroup) { return false; }
+            var mask = addPropertySafe(maskGroup,
+                ["ADBE Mask Atom", "ADBE Mask Atom-0001", "Mask"]);
+            if (!mask) { return false; }
+            mask.name = "Polygon_" + sides;
+
+            var cx = 50, cy = 50, r = 45;
+            var verts = [];
+            for (var vi = 0; vi < sides; vi++) {
+                var a = -Math.PI / 2 + (2 * Math.PI * vi / sides);
+                verts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]);
+            }
+
+            var maskShape = new Shape();
+            maskShape.vertices = verts;
+            maskShape.closed = true;
+
+            var shapeProp = getPropertySafe(mask,
+                ["ADBE Mask Shape", "Mask Shape", "蒙版路径"]);
+            if (!shapeProp) { return false; }
+            shapeProp.setValue(maskShape);
+            return true;
+        } catch (e) {
+            debugLog("  addPolygonMask failed (sides=" + sides + "): " + e.toString());
+            return false;
+        }
+    }
+
     // ==================== 核心函数 ====================
 
     function getActiveComp() {
@@ -631,6 +662,12 @@
                 if (shapeIdx === 0) {
                     // 圆形：添加椭圆 mask
                     addCircleMask(solid);
+                } else if (shapeIdx === 2) {
+                    // 五边形
+                    addPolygonMask(solid, 5);
+                } else if (shapeIdx === 3) {
+                    // 六边形
+                    addPolygonMask(solid, 6);
                 }
                 // shapeIdx === 1: 正方形（原生 Solid，不做任何处理）
 
@@ -891,7 +928,7 @@
         var r1c = paramGroup.add("group");
         r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
         r1c.add("statictext", undefined, "形状:").preferredSize = [50, 18];
-        var shapeDropdown = r1c.add("dropdownlist", undefined, ["圆形", "正方形"]);
+        var shapeDropdown = r1c.add("dropdownlist", undefined, ["圆形", "正方形", "五边形", "六边形"]);
         shapeDropdown.selection = 0;
         shapeDropdown.preferredSize = [120, 20];
 
