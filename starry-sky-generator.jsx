@@ -996,7 +996,7 @@
         hueSlider.preferredSize = [60, 20];
         var hueValue = r2.add("edittext", undefined, "58");
         hueValue.preferredSize = [35, 20]; hueValue.characters = 3;
-        r2.add("statictext", undefined, "%").preferredSize = [12, 18];
+        r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         // 饱和度
         r2.add("statictext", undefined, "饱和度:").preferredSize = [50, 18];
@@ -1004,7 +1004,7 @@
         satSlider.preferredSize = [60, 20];
         var satValue = r2.add("edittext", undefined, "80");
         satValue.preferredSize = [35, 20]; satValue.characters = 3;
-        r2.add("statictext", undefined, "%").preferredSize = [12, 18];
+        r2.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         // 第二行：亮度 + 色相扩散
         var r2b = paramGroup.add("group");
@@ -1015,14 +1015,14 @@
         lightSlider.preferredSize = [60, 20];
         var lightValue = r2b.add("edittext", undefined, "50");
         lightValue.preferredSize = [35, 20]; lightValue.characters = 3;
-        r2b.add("statictext", undefined, "%").preferredSize = [12, 18];
+        r2b.add("statictext", undefined, "% (百分比)").preferredSize = [50, 18];
 
         r2b.add("statictext", undefined, "  色相扩散:").preferredSize = [68, 18];
         var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
         hueVarSlider.preferredSize = [60, 20];
         var hueVarValue = r2b.add("edittext", undefined, "30");
         hueVarValue.preferredSize = [40, 20]; hueVarValue.characters = 3;
-        r2b.add("statictext", undefined, "deg").preferredSize = [24, 18];
+        r2b.add("statictext", undefined, "deg (角度)").preferredSize = [50, 18];
 
         // HSL → RGB 颜色方块更新
         function updateColorSwatch() {
