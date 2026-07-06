@@ -332,7 +332,7 @@
         addSliderToLayer(nullLayer, "最大生命周期(秒)", 6);
         addSliderToLayer(nullLayer, "淡入时长(秒)", 0.3);
         addSliderToLayer(nullLayer, "淡出时长(秒)", 0.8);
-        addSliderToLayer(nullLayer, "闪烁强度", 20);
+        addSliderToLayer(nullLayer, "闪烁强度", 50);
         addSliderToLayer(nullLayer, "闪烁速度", 2);
         addSliderToLayer(nullLayer, "随机种子", 42);
         // === v2.0 发射区域 + 目标吸引 ===
@@ -543,7 +543,7 @@
             'var lifeMax = ctrl.effect("最大生命周期(秒)") ? ctrl.effect("最大生命周期(秒)")(1) : 6;',
             'var fadeIn = ctrl.effect("淡入时长(秒)") ? ctrl.effect("淡入时长(秒)")(1) : 0.3;',
             'var fadeOut = ctrl.effect("淡出时长(秒)") ? ctrl.effect("淡出时长(秒)")(1) : 0.8;',
-            'var twinkleStrength = ctrl.effect("闪烁强度") ? ctrl.effect("闪烁强度")(1) : 20;',
+            'var twinkleStrength = ctrl.effect("闪烁强度") ? ctrl.effect("闪烁强度")(1) : 50;',
             'var twinkleSpeed = ctrl.effect("闪烁速度") ? ctrl.effect("闪烁速度")(1) : 2;',
             'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             '',
@@ -563,7 +563,7 @@
             '',
             'var twinkle = 0;',
             'if (twinkleStrength > 0) {',
-            '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength;',
+            '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength * 2;',
             '}',
             'Math.max(0, Math.min(100, baseOpacity + twinkle));'
         ].join('\n');
@@ -1417,9 +1417,9 @@
         var twinkleCheck = f1.add("checkbox", undefined, "闪烁效果");
         twinkleCheck.value = true;
         f1.add("statictext", undefined, " 强度:").preferredSize = [40, 18];
-        var twinkleStrSlider = f1.add("slider", undefined, 20, 0, 100);
+        var twinkleStrSlider = f1.add("slider", undefined, 50, 0, 100);
         twinkleStrSlider.preferredSize = [50, 20];
-        var twinkleStrValue = f1.add("statictext", undefined, "20%");
+        var twinkleStrValue = f1.add("statictext", undefined, "50%");
         twinkleStrValue.preferredSize = [30, 18];
         f1.add("statictext", undefined, " 速度:").preferredSize = [40, 18];
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
@@ -1760,7 +1760,7 @@
             lifeMaxInput.text = (preset["最大生命周期(秒)"] || 6).toString();
             fadeInInput.text = (preset["淡入时长(秒)"] || 0.3).toString();
             fadeOutInput.text = (preset["淡出时长(秒)"] || 0.8).toString();
-            twinkleStrSlider.value = preset["闪烁强度"] || 20;
+            twinkleStrSlider.value = preset["闪烁强度"] || 50;
             twinkleStrValue.text = Math.round(twinkleStrSlider.value) + "%";
             twinkleCheck.value = (preset["闪烁强度"] || 0) > 0;
             twinkleSpdSlider.value = preset["闪烁速度"] || 2;
