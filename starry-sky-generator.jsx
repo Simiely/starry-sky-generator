@@ -1490,8 +1490,6 @@
         saveBtn.preferredSize = [-1, 26];
         var loadBtn = ioBtnRow.add("button", undefined, "加载预设");
         loadBtn.preferredSize = [-1, 26];
-        var debugBtn = ioBtnRow.add("button", undefined, "调试");
-        debugBtn.preferredSize = [55, 26];
 
         // ==============================
         //  快捷预设
