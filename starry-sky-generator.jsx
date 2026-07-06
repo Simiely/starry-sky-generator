@@ -1262,7 +1262,7 @@
         attractReset.onClick = function() { attractSlider.value = 0; attractValue.text = "0%"; };
 
         m5.add("statictext", undefined, "时长:").preferredSize = [40, 18];
-        var attractDurSlider = m5.add("slider", undefined, 2, 0.5, 20);
+        var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
         attractDurSlider.preferredSize = [60, 20];
         var attractDurInput = m5.add("edittext", undefined, "2");
         attractDurInput.preferredSize = [28, 20]; attractDurInput.characters = 4;
@@ -1272,8 +1272,8 @@
         attractDurInput.onChange = function() {
             var v = parseFloat(attractDurInput.text);
             if (!isNaN(v)) {
-                v = Math.max(0.5, Math.min(20, v));
-                attractDurSlider.value = v;
+                v = Math.max(0.1, v);
+                attractDurSlider.value = Math.min(999, v);
                 attractDurInput.text = Math.round(v * 10) / 10;
             }
         };
