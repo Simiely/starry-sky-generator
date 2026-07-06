@@ -1495,19 +1495,36 @@
                     alert("槽位 " + (idx + 1) + " 为空。");
                     return;
                 }
-                var preset = JSON.parse(jsonStr);
-                applyPresetToUI(preset);
-                // 也设置一下当前选择控件（applyPresetToUI 之外的值）
-                var sh = preset["形状"];
-                if (sh !== undefined) shapeDropdown.selection = sh;
-                var em = preset["emitMode"];
-                if (em !== undefined) emitModeDrop.selection = em;
-                var tm = preset["targetMode"];
-                if (tm !== undefined) targetModeDrop.selection = tm;
-                attractSlider.value = preset["吸引力"] || 0;
-                attractValue.text = Math.round(attractSlider.value) + "%";
-                attractDurSlider.value = preset["吸引时长"] || 2;
-                attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
+                var p = JSON.parse(jsonStr);
+                // slot 预设的键名来自 getUIParams()，与 applyPresetToUI（中文键名）完全不同
+                // 所以需要直接逐个控件恢复
+                if (p.count !== undefined)      { countSlider.value = p.count; countValue.text = Math.round(p.count).toString(); }
+                if (p.sizeMin !== undefined)    sizeMinInput.text = p.sizeMin.toString();
+                if (p.sizeMax !== undefined)    sizeMaxInput.text = p.sizeMax.toString();
+                if (p.shape !== undefined)      shapeDropdown.selection = p.shape;
+                if (p.hue !== undefined)        { hueSlider.value = p.hue; hueValue.text = Math.round(p.hue).toString(); }
+                if (p.hueVar !== undefined)     { hueVarSlider.value = p.hueVar; hueVarValue.text = Math.round(p.hueVar).toString(); }
+                if (p.sat !== undefined)        { satSlider.value = p.sat; satValue.text = Math.round(p.sat) + "%"; }
+                if (p.light !== undefined)      { lightSlider.value = p.light; lightValue.text = Math.round(p.light) + "%"; }
+                if (p.direction !== undefined)  { dirSlider.value = p.direction; dirValue.text = Math.round(p.direction).toString(); }
+                if (p.dirSpread !== undefined)  { spreadSlider.value = p.dirSpread; spreadValue.text = Math.round(p.dirSpread).toString(); }
+                if (p.speedMin !== undefined)   speedMinInput.text = p.speedMin.toString();
+                if (p.speedMax !== undefined)   speedMaxInput.text = p.speedMax.toString();
+                if (p.lifeMin !== undefined)    lifeMinInput.text = p.lifeMin.toString();
+                if (p.lifeMax !== undefined)    lifeMaxInput.text = p.lifeMax.toString();
+                if (p.fadeIn !== undefined)     fadeInInput.text = p.fadeIn.toString();
+                if (p.fadeOut !== undefined)    fadeOutInput.text = p.fadeOut.toString();
+                if (p.twinkleEnabled !== undefined) twinkleCheck.value = p.twinkleEnabled;
+                if (p.twinkleStrength !== undefined) { twinkleStrSlider.value = p.twinkleStrength; twinkleStrValue.text = Math.round(p.twinkleStrength) + "%"; }
+                if (p.twinkleSpeed !== undefined)   { twinkleSpdSlider.value = p.twinkleSpeed; twinkleSpdValue.text = Math.round(p.twinkleSpeed * 10) / 10; }
+                if (p.seed !== undefined)       { seedSlider.value = p.seed; seedValue.text = Math.round(p.seed).toString(); }
+                if (p.emitMode !== undefined)   emitModeDrop.selection = p.emitMode;
+                // 发射图层/遮罩: 下拉框可能有变化（合成不同），只恢复状态文字
+                if (p.emitDen !== undefined)    emitDenSlider.value = p.emitDen;
+                if (p.targetMode !== undefined) targetModeDrop.selection = p.targetMode;
+                if (p.attractDur !== undefined) { attractDurSlider.value = p.attractDur; attractDurInput.text = (Math.round(p.attractDur * 10) / 10).toString(); }
+                if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction) + "%"; }
+                if (p.wrapAround !== undefined) wrapCheck.value = p.wrapAround;
                 try { updateColorSwatch(); } catch (e) {}
                 setStatus("已加载槽位 " + (idx + 1));
             } catch (e) {
