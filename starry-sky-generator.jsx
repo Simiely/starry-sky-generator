@@ -532,7 +532,7 @@
         p.push('    var toX = tX - curX;');
         p.push('    var toY = tY - curY;');
         p.push('    var toD = Math.sqrt(toX*toX + toY*toY);');
-        p.push('    if (toD > 1) { vx += (toX / toD) * (attraction / 100) * speed; vy += (toY / toD) * (attraction / 100) * speed; }');
+        p.push('    if (toD > 1) { vx += (toX / toD) * attraction * speed; vy += (toY / toD) * attraction * speed; }');
         p.push('}');
         p.push('var rawX = startX + vx * tLocal;');
         p.push('var rawY = startY + vy * tLocal;');
