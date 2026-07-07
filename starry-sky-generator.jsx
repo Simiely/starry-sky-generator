@@ -479,23 +479,33 @@
         p.push('');
         p.push('var tX = 0, tY = 0, attraction = 0;');
         if (targetMode === 1 && targetLayer) {
+            // Null点模式：直接取图层位置
             p.push('try { var tp = thisComp.layer("' + targetLayer + '").transform.position; tX = tp[0]; tY = tp[1]; } catch(e) {}');
             p.push('attraction = ' + fx('吸引力', 0) + ';');
-        } else if (targetMode === 2 && targetLayer && targetMask) {
+        } else if (targetMode === 2 && targetLayer) {
+            // 遮罩范围模式：有遮罩取遮罩内随机点，无遮罩退化为图层中心
             p.push('try {');
             p.push('    var tLyr = thisComp.layer("' + targetLayer + '");');
-            p.push('    var tMask = tLyr.mask("' + targetMask + '");');
-            p.push('    if (tMask && tMask.maskPath) {');
-            p.push('        var tPts = tMask.maskPath.points();');
-            p.push('        var tl = 99999, tr = -99999, tt = 99999, tb = -99999;');
-            p.push('        for (var ti = 0; ti < tPts.length; ti++) {');
-            p.push('            if (tPts[ti][0] < tl) tl = tPts[ti][0]; if (tPts[ti][0] > tr) tr = tPts[ti][0];');
-            p.push('            if (tPts[ti][1] < tt) tt = tPts[ti][1]; if (tPts[ti][1] > tb) tb = tPts[ti][1];');
-            p.push('        }');
-            p.push('        seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
-            p.push('        var tp = tLyr.toComp([random(tl, tr), random(tt, tb)]);');
-            p.push('        tX = tp[0]; tY = tp[1];');
-            p.push('    }');
+            if (targetMask) {
+                p.push('    var tMask = tLyr.mask("' + targetMask + '");');
+                p.push('    if (tMask && tMask.maskPath) {');
+                p.push('        var tPts = tMask.maskPath.points();');
+                p.push('        var tl = 99999, tr = -99999, tt = 99999, tb = -99999;');
+                p.push('        for (var ti = 0; ti < tPts.length; ti++) {');
+                p.push('            if (tPts[ti][0] < tl) tl = tPts[ti][0]; if (tPts[ti][0] > tr) tr = tPts[ti][0];');
+                p.push('            if (tPts[ti][1] < tt) tt = tPts[ti][1]; if (tPts[ti][1] > tb) tb = tPts[ti][1];');
+                p.push('        }');
+                p.push('        seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
+                p.push('        var tp = tLyr.toComp([random(tl, tr), random(tt, tb)]);');
+                p.push('        tX = tp[0]; tY = tp[1];');
+                p.push('    } else {');
+                // 无遮罩 → 退化到图层位置
+                p.push('        var tp = tLyr.transform.position; tX = tp[0]; tY = tp[1];');
+                p.push('    }');
+            } else {
+                // targetMask 为空 → 退化到图层位置
+                p.push('    var tp = tLyr.transform.position; tX = tp[0]; tY = tp[1];');
+            }
             p.push('} catch(e) {}');
             p.push('attraction = ' + fx('吸引力', 0) + ';');
         }
