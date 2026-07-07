@@ -1147,6 +1147,7 @@
         emitDenVal.preferredSize = [40, 18];
         
         emitDenSlider.onChanging = function() { emitDenVal.text = Math.round(emitDenSlider.value) + "%"; };
+        emitDenSlider.onChange = function() { emitDenVal.text = Math.round(emitDenSlider.value) + "%"; };
         ee3.visible = false;
 
         function populateEmitMask(comp) {
