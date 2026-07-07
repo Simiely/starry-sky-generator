@@ -511,7 +511,7 @@
         }
         p.push('');
 
-        // ===== 运动：线性拉取吸引 =====
+        // ===== 运动：速度吸引 =====
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
         p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         p.push('var speed = random(speedMin, speedMax);');
@@ -521,19 +521,19 @@
         p.push('var adjTime = time + timeShift;');
         p.push('var tLocal = adjTime % eLifeDur;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
-
-        // 基础漂移位置（不受吸引）
-        p.push('var driftX = startX + Math.cos(angle) * speed * tLocal;');
-        p.push('var driftY = startY + Math.sin(angle) * speed * tLocal;');
-
-        // 极简吸引：直接把漂移位置拽向目标
+        p.push('var vx = Math.cos(angle) * speed;');
+        p.push('var vy = Math.sin(angle) * speed;');
         p.push('if (attraction > 0 && tLocal < attractDur) {');
-        p.push('    var pull = attraction * (tLocal / attractDur); // 吸引力 × 时间进度');
-        p.push('    driftX = driftX + (tX - driftX) * pull;');
-        p.push('    driftY = driftY + (tY - driftY) * pull;');
+        p.push('    var toX = tX - (startX + vx * tLocal);');
+        p.push('    var toY = tY - (startY + vy * tLocal);');
+        p.push('    var toDist = Math.sqrt(toX*toX + toY*toY);');
+        p.push('    if (toDist > 1) {');
+        p.push('        vx = vx + (toX / toDist) * attraction * 50;');
+        p.push('        vy = vy + (toY / toDist) * attraction * 50;');
+        p.push('    }');
         p.push('}');
-        p.push('var rawX = driftX;');
-        p.push('var rawY = driftY;');
+        p.push('var rawX = startX + vx * tLocal;');
+        p.push('var rawY = startY + vy * tLocal;');
         if (wrapAround) {
             p.push('var wrapX = rawX % thisComp.width;');
             p.push('var wrapY = rawY % thisComp.height;');
