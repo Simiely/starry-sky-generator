@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║                星空粒子生成器 — 产品落地页                              ║
+║                                                                      ║
+║  基于通用产品落地页模板  ·  暗色主题 / 全屏滚动 / 背景噪点               ║
+║                                                                      ║
+║  给 AI 助手的说明：修改 CONFIG 即可定制内容                             ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>星空粒子生成器 — AE 插件</title>
+<link rel="icon" href="https://simiely.github.io/hub-world/favicon.png" type="image/png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Geist:wght@300..700&family=Geist+Mono:wght@400..600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#0F111A;
+    --bg-warm:#161824;
+    --ink:#E4E4ED;
+    --ink-soft:#9A9CB0;
+    --ink-faint:#5E6078;
+    --rose:#7C6DFF;
+    --rose-rgb:124,109,255;
+    --rose-deep:#5E4ED4;
+    --rose-soft:#B4A9FF;
+    --cream:#1E2030;
+    --hairline:rgba(255,255,255,.08);
+    --ease:cubic-bezier(.7,.05,.2,1);
+    --ease-out:cubic-bezier(.16,1,.3,1);
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:"Geist",-apple-system,sans-serif;
+    font-weight:400;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+    overflow:hidden;
+  }
+
+  /* grain overlay */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;
+    opacity:.04;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  ::selection{background:var(--rose);color:#fff}
+
+  .deck{
+    height:100vh;height:100dvh;
+    overflow-y:auto;
+    scroll-snap-type:y mandatory;
+    scroll-behavior:smooth;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .deck::-webkit-scrollbar{display:none}
+
+  .slide{
+    position:relative;
+    min-height:100vh;min-height:100dvh;
+    scroll-snap-align:start;scroll-snap-stop:always;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(72px,9vh,120px) clamp(24px,5vw,64px) clamp(56px,7vh,88px);
+    overflow:hidden;
+  }
+
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:18px clamp(20px,4vw,40px);
+    mix-blend-mode:difference;color:#fff;pointer-events:none;
+  }
+  .nav > *{pointer-events:auto}
+  .nav__brand{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:19px;
+    letter-spacing:-.01em;display:flex;align-items:center;gap:10px;
+  }
+  .nav__brand .dot{
+    width:9px;height:9px;border-radius:50%;background:var(--rose);
+    display:inline-block;animation:pulse 2.4s var(--ease) infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.55}}
+  .nav__meta{display:flex;align-items:center;gap:24px;font-size:13px;font-family:"Geist Mono",monospace}
+  .nav__meta a{color:inherit;text-decoration:none;position:relative}
+  .nav__meta a::after{content:"";position:absolute;left:0;bottom:-3px;height:1px;width:0;background:currentColor;transition:width .4s var(--ease)}
+  .nav__meta a:hover::after{width:100%}
+  #nav-version-link::after{display:none}
+  #nav-version-link .nav__ver{transition:all .35s var(--ease);display:inline-block}
+  #nav-version-link:hover .nav__ver{background:var(--rose);border-color:var(--rose);color:#fff}
+  .nav__ver{padding:5px 11px;border:1px solid currentColor;border-radius:100px;font-size:11px}
+
+  .dots{
+    position:fixed;right:clamp(16px,2.4vw,32px);top:50%;transform:translateY(-50%);
+    z-index:100;display:flex;flex-direction:column;gap:12px;
+  }
+  .dot-btn{
+    width:3px;height:3px;border-radius:50%;border:none;cursor:pointer;
+    background:rgba(255,255,255,.18);padding:0;position:relative;opacity:.5;
+    transition:all .4s var(--ease);
+  }
+  .dot-btn.active{background:var(--rose);transform:scale(1.5);opacity:1}
+  .dot-btn::after{
+    content:attr(data-label);position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-soft);white-space:nowrap;opacity:0;transition:opacity .3s var(--ease);pointer-events:none;
+  }
+  .dot-btn:hover::after{opacity:1}
+  .dot-btn.active::after{color:var(--rose)}
+
+  .hint{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:90;
+    font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--ink-faint);display:flex;align-items:center;gap:8px;
+    opacity:1;transition:opacity .5s var(--ease);pointer-events:none;
+  }
+  .hint.hide{opacity:0}
+  .hint .mouse{width:16px;height:26px;border:1.5px solid currentColor;border-radius:10px;position:relative}
+  .hint .mouse::after{content:"";position:absolute;left:50%;top:5px;transform:translateX(-50%);width:2px;height:5px;background:currentColor;border-radius:2px;animation:wheel 1.6s var(--ease) infinite}
+  @keyframes wheel{0%{opacity:0;transform:translate(-50%,0)}30%{opacity:1}100%{opacity:0;transform:translate(-50%,8px)}}
+
+  .anim{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease-out),transform .9s var(--ease-out)}
+  .slide.is-active .anim{opacity:1;transform:none}
+  .slide.is-active .anim.d1{transition-delay:.10s}
+  .slide.is-active .anim.d2{transition-delay:.20s}
+  .slide.is-active .anim.d3{transition-delay:.30s}
+  .slide.is-active .anim.d4{transition-delay:.40s}
+  .slide.is-active .anim.d5{transition-delay:.50s}
+  .slide.is-active .anim.d6{transition-delay:.60s}
+  .slide.is-active .anim.d7{transition-delay:.70s}
+  .slide.is-active .anim.d8{transition-delay:.80s}
+  .anim.from-l{transform:translateX(-46px)}
+  .anim.from-r{transform:translateX(46px)}
+  .anim.scale{transform:scale(.9)}
+  .anim.clip{clip-path:inset(0 0 100% 0);transform:none}
+
+  .sec__head{
+    display:flex;align-items:baseline;gap:20px;
+    margin-bottom:clamp(28px,4vh,52px);padding-bottom:16px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .sec__num{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.15em;color:var(--ink-faint)}
+  .sec__title{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:500;
+    font-size:clamp(30px,4.4vw,60px);line-height:1;letter-spacing:-.025em;
+  }
+  .sec__title em{font-style:italic;color:var(--rose);font-weight:600}
+
+  .eyebrow{
+    font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--ink-soft);display:flex;align-items:center;gap:14px;margin-bottom:24px;
+  }
+  .eyebrow .bar{width:42px;height:1px;background:var(--ink)}
+
+  .hero{background:var(--bg)}
+  .hero__inner{
+    display:grid;grid-template-columns:1.4fr .9fr;gap:40px;align-items:center;width:100%;max-width:1280px;margin:0 auto;
+  }
+  .hero__title{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:500;
+    font-size:clamp(64px,13vw,200px);line-height:.86;letter-spacing:-.045em;
+    transition:transform .6s var(--ease);
+  }
+  .hero__title .l2{display:block;padding-left:.32em}
+  .hero__title em{font-style:italic;font-weight:600;color:var(--rose)}
+
+  .hero__feat{
+    margin-top:32px;max-width:620px;padding:24px 28px;background:var(--bg-warm);
+    border:1px solid var(--ink);border-radius:18px;position:relative;
+    box-shadow:14px 14px 0 var(--rose);
+    transition:box-shadow .4s var(--ease),transform .4s var(--ease);
+    will-change:transform;
+  }
+  .hero__feat-label{
+    display:inline-flex;align-items:center;gap:10px;
+    font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:var(--rose);margin-bottom:12px;
+  }
+  .hero__feat-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--rose)}
+  .hero__feat-text{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:600;
+    font-size:clamp(18px,2vw,26px);line-height:1.4;letter-spacing:-.015em;color:var(--ink);
+  }
+  .hero__feat-text b{color:var(--rose);font-weight:700}
+
+  .hero__sub{margin-top:28px;max-width:520px;font-size:clamp(14px,1.4vw,17px);line-height:1.55;color:var(--ink-soft)}
+  .hero__sub b{color:var(--ink);font-weight:600}
+
+  .badge-area{justify-self:end;align-self:center;text-align:right;position:relative;}
+  .badge-area__icon{font-family:"Bricolage Grotesque",sans-serif;font-weight:300;font-size:clamp(72px,12vw,160px);line-height:1;letter-spacing:-.02em;margin-bottom:12px}
+  .badge-area__label{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px}
+  .badge-area__tags{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+  .badge-area__tags span{
+    padding:5px 12px;border:1px solid var(--hairline);border-radius:100px;
+    font-family:"Geist Mono",monospace;font-size:11px;color:var(--ink-soft);
+  }
+
+  .ticker{
+    position:absolute;left:0;right:0;bottom:0;
+    border-top:1px solid var(--ink);background:var(--bg-warm);overflow:hidden;padding:13px 0;
+  }
+  .ticker__track{display:flex;white-space:nowrap;animation:marquee 36s linear infinite}
+  .ticker__item{
+    font-family:"Bricolage Grotesque",sans-serif;font-style:italic;font-weight:400;font-size:clamp(20px,2vw,28px);
+    padding:0 32px;color:var(--ink);display:flex;align-items:center;gap:32px;
+  }
+  .ticker__item::after{content:"✦";color:var(--rose);font-style:normal;font-size:15px}
+  @keyframes marquee{to{transform:translateX(-50%)}}
+
+  .problem{background:var(--rose);color:#fff;position:relative}
+  .problem::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at var(--mx,70%) var(--my,40%), rgba(255,255,255,.22), transparent 55%);
+    pointer-events:none;transition:background .2s linear;
+  }
+  .problem__inner{position:relative;max-width:1100px;margin:0 auto;width:100%}
+  .problem__eyebrow{
+    font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+    opacity:.85;margin-bottom:32px;display:flex;align-items:center;gap:14px;
+  }
+  .problem__eyebrow .bar{width:42px;height:1px;background:#fff}
+  .problem__title{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:500;
+    font-size:clamp(44px,8vw,132px);line-height:.95;letter-spacing:-.035em;max-width:16ch;
+  }
+  .problem__title em{font-style:italic;font-weight:600}
+  .problem__sub{margin-top:36px;max-width:620px;font-size:clamp(15px,1.6vw,18px);line-height:1.6;opacity:.92}
+  .problem__stat{margin-top:44px;display:flex;align-items:baseline;gap:24px;flex-wrap:wrap}
+  .problem__stat .item{display:flex;align-items:baseline;gap:12px}
+  .problem__stat .n{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:300;font-size:clamp(64px,10vw,110px);line-height:.9;
+    letter-spacing:-.03em;
+  }
+  .problem__stat .l{font-family:"Geist Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;opacity:.85;max-width:12ch}
+
+  .feat{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--ink);border:1px solid var(--ink);width:100%;max-width:1180px;margin:0 auto}
+  .feat__cell{
+    background:var(--bg);padding:clamp(32px,4vw,48px) clamp(24px,3vw,32px);
+    min-height:clamp(220px,32vh,300px);
+    display:flex;flex-direction:column;justify-content:space-between;
+    transition:background .45s var(--ease),color .45s var(--ease);position:relative;overflow:hidden;cursor:default;
+  }
+  .feat__cell::before{content:"";position:absolute;left:0;top:0;height:100%;width:0;background:var(--rose);transition:width .5s var(--ease);z-index:0}
+  .feat__cell:hover{color:#fff}
+  .feat__cell:hover::before{width:100%}
+  .feat__cell > *{position:relative;z-index:1}
+  .feat__num{font-family:"Geist Mono",monospace;font-size:11px;letter-spacing:.15em;opacity:.6}
+  .feat__icon{font-size:clamp(36px,4.5vw,52px);margin:14px 0;line-height:1;transition:transform .5s var(--ease)}
+  .feat__cell:hover .feat__icon{transform:translateX(6px) scale(1.08)}
+  .feat__name{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:clamp(20px,2.2vw,24px);line-height:1.1;letter-spacing:-.015em;margin-bottom:10px}
+  .feat__desc{font-size:clamp(12px,1.25vw,14px);line-height:1.55;opacity:.72}
+
+  .how__grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--ink);border:1px solid var(--ink);
+    width:100%;max-width:1180px;margin:0 auto;
+  }
+  .how__cell{
+    background:var(--bg-warm);padding:clamp(28px,4vw,52px) clamp(24px,3vw,44px);
+    min-height:clamp(200px,28vh,300px);
+    display:flex;flex-direction:column;justify-content:space-between;position:relative;
+    transition:background .5s var(--ease);
+  }
+  .how__cell:hover{background:#242638}
+  .how__cell--accent{background:#151725}
+  .how__cell--accent:hover{background:#242638}
+  .how__step{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.18em;opacity:.6}
+  .how__icon{font-size:clamp(48px,7vw,80px);line-height:1;margin:14px 0;transition:transform .5s var(--ease)}
+  .how__cell:hover .how__icon{transform:scale(1.08) rotate(-3deg)}
+  .how__cell--accent .how__icon{color:var(--rose)}
+  .how__name{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:clamp(20px,2.4vw,28px);line-height:1.05;letter-spacing:-.02em;margin-bottom:10px}
+  .how__desc{font-size:clamp(13px,1.3vw,15px);line-height:1.55;opacity:.75;max-width:36ch}
+  .how__flow{
+    grid-column:1/-1;background:var(--cream);padding:16px clamp(20px,3vw,44px);
+    display:flex;align-items:center;flex-wrap:wrap;gap:12px;
+    font-family:"Geist Mono",monospace;font-size:clamp(10px,1vw,12px);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);
+  }
+  .how__flow .arrow{color:var(--rose);font-family:"Bricolage Grotesque",sans-serif;font-size:16px}
+
+  .install{background:var(--bg)}
+  .install__grid{display:grid;grid-template-columns:1.2fr 1fr;gap:clamp(40px,5vw,80px);width:100%;max-width:1180px;margin:0 auto;align-items:start}
+  .install__steps{list-style:none;display:flex;flex-direction:column;gap:0}
+  .install__step{
+    display:flex;align-items:flex-start;gap:18px;
+    padding:16px 0;border-bottom:1px solid var(--hairline);
+    transition:opacity .3s var(--ease);
+  }
+  .install__step:last-child{border-bottom:none}
+  .install__step-num{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:300;font-size:20px;line-height:1.4;
+    color:var(--rose);flex-shrink:0;width:28px;
+  }
+  .install__step-body{flex:1}
+  .install__step-title{font-weight:600;font-size:14px;margin-bottom:4px}
+  .install__step-desc{font-size:13px;color:var(--ink-soft);line-height:1.5}
+  .install__code{
+    background:var(--cream);border:1px solid var(--hairline);border-radius:12px;padding:16px 20px;
+    font-family:"Geist Mono",monospace;font-size:clamp(12px,1.1vw,13px);line-height:1.7;
+    color:var(--ink);overflow-x:auto;
+  }
+  .install__code .hl{color:var(--rose)}
+  .install__code .cm{color:var(--ink-faint)}
+
+  .cta{color:#E4E4ED;text-align:center;position:relative;overflow:hidden}
+  .cta::before{content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:120vw;height:120vw;max-width:1000px;max-height:1000px;border-radius:50%;background:radial-gradient(circle at 50% 50%, rgba(var(--rose-rgb), .28), transparent 55%)}
+  .cta__inner{position:relative;max-width:900px;margin:0 auto}
+  .cta__eyebrow{font-family:"Geist Mono",monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:var(--rose-soft);margin-bottom:28px}
+  .cta__title{font-family:"Bricolage Grotesque",sans-serif;font-weight:400;font-size:clamp(40px,7.5vw,124px);line-height:.94;letter-spacing:-.035em}
+  .cta__title em{font-style:italic;color:var(--rose);font-weight:600}
+  .cta__btns{margin-top:44px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+  .btn-primary{
+    display:inline-flex;align-items:center;gap:14px;
+    background:var(--rose);color:#fff;border:none;padding:16px 36px;border-radius:100px;
+    font-family:"Geist",sans-serif;font-size:15px;font-weight:600;text-decoration:none;
+    cursor:pointer;transition:all .35s var(--ease);box-shadow:0 8px 24px rgba(var(--rose-rgb), .35);
+  }
+  .btn-primary:hover{background:var(--rose-deep);transform:translateY(-3px);box-shadow:0 12px 32px rgba(var(--rose-rgb), .45)}
+  .btn-ghost{
+    display:inline-flex;align-items:center;gap:14px;
+    background:transparent;color:var(--ink);border:1px solid var(--hairline);padding:16px 36px;border-radius:100px;
+    font-family:"Geist",sans-serif;font-size:15px;font-weight:500;text-decoration:none;
+    cursor:pointer;transition:all .35s var(--ease);
+  }
+  .btn-ghost:hover{background:var(--cream);border-color:var(--ink-soft);transform:translateY(-3px)}
+  .cta__meta{margin-top:32px;font-size:13px;color:var(--ink-soft)}
+  .cta__meta a{color:var(--rose-soft);text-decoration:none}
+  .cta__meta a:hover{text-decoration:underline}
+
+  .hub-back{
+    position:fixed;top:0;left:0;right:0;z-index:200;
+    display:flex;align-items:center;justify-content:center;
+    padding:14px 0;
+    pointer-events:none;
+    text-decoration:none;
+    mix-blend-mode:difference;color:#fff;
+  }
+  .hub-back__inner{
+    pointer-events:auto;display:flex;align-items:center;gap:10px;padding-top:3px;
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:19px;
+    letter-spacing:-.01em;cursor:pointer;transition:opacity .3s;
+  }
+  .hub-back__inner:hover{opacity:.7}
+  .hub-back__logo{height:1.12rem;width:auto;display:block;vertical-align:middle}
+
+  @media(max-width:860px){
+    .hero__inner{grid-template-columns:1fr;gap:24px}
+    .badge-area{text-align:left;justify-self:start}
+    .badge-area__tags{justify-content:flex-start}
+    .feat{grid-template-columns:1fr 1fr}
+    .how__grid{grid-template-columns:1fr}
+    .install__grid{grid-template-columns:1fr}
+  }
+  @media(max-width:520px){
+    .feat{grid-template-columns:1fr}
+    .nav__meta .nav__link-text{display:none}
+  }
+  @media(max-width:768px){
+    .nav__brand{display:none}
+    .nav{justify-content:flex-end}
+    .hub-back{justify-content:flex-start;padding:14px clamp(20px,4vw,40px)}
+  }
+</style>
+</head>
+<body>
+
+<script>
+var CONFIG = {
+
+  pageTitle: "星空粒子生成器 — After Effects 插件",
+  brand: "Starry Sky v3.1.2",
+  version: "v3.1.2",
+  accentColor: "#7C6DFF",
+  repoUrl: "https://github.com/Simiely/starry-sky-generator",
+  issuesUrl: "https://github.com/Simiely/starry-sky-generator/issues",
+  authorName: "Simiely",
+  authorUrl: "https://github.com/Simiely",
+  license: "MIT License",
+
+  hero: {
+    titleLine1: "Starry",
+    titleLine2: "Sky",
+    titleEmphasis: "Particle",
+    featureLabel: "v3.1.2",
+    featureText: "After Effects 一键生成 <b>星空粒子</b><br>支持 4 种形状 · HSL 颜色 · 模糊 · 闪烁 · 目标吸引",
+    subtitle: "ScriptUI 面板插件，在 AE 合成中快速生成大量可控的<b>星空粒子效果</b>",
+    badgeLabel: "形状",
+    badgeIcon: "✦",
+    tags: ["圆形", "五边形", "六边形", "方形"],
+    tickerItems: [
+      "全屏粒子",
+      "色相扩散 HSL",
+      "淡入淡出",
+      "遮罩发射",
+      "目标吸引",
+      "模糊羽化",
+      "4 种形状",
+      "闪烁效果"
+    ]
+  },
+
+  problem: {
+    eyebrow: "痛点",
+    title: "手调星空动画<br>太<em>慢了</em>",
+    description: "逐帧 K 关键帧、手动画椭圆遮罩、调色、调闪烁……一个 200 粒子的星空动画要<strong>花费数小时</strong>。这应该是自动化的。",
+    stats: [
+      { number: "2000+", label: "单次\\n粒子数量" },
+      { number: "28",    label: "可调\\n参数项" },
+      { number: "1",     label: "一键\\n生成" }
+    ]
+  },
+
+  features: {
+    sectionNumber: "01",
+    title: "核心",
+    titleEmphasis: "功能",
+    items: [
+      { icon: "⚙️", name: "ScriptUI 面板", desc: "AE 原生 ScriptUI，打开即用，无需额外安装" },
+      { icon: "🔵", name: "4 种形状", desc: "方形、圆形、五边形、六边形，每种形状独立控制" },
+      { icon: "🎨", name: "HSL 调色", desc: "色相/饱和度/亮度 + 色相扩散，每个粒子颜色各异" },
+      { icon: "🌀", name: "运动控制", desc: "方向、速度、扩散随机、目标吸引，表达式驱动" },
+      { icon: "✨", name: "闪烁 + 模糊", desc: "闪烁幅度/速度可控，模糊羽化/比例随机分配" },
+      { icon: "📦", name: "预设系统", desc: "4 个内建预设 + 4 个用户槽位，快速切换参数方案" }
+    ]
+  },
+
+  usage: {
+    sectionNumber: "02",
+    title: "快速",
+    titleEmphasis: "上手",
+    steps: [
+      { icon: "📋", name: "调整参数", desc: "设粒子数量、尺寸、HSL 颜色、运动方向等", accent: true },
+      { icon: "▶",  name: "一键生成", desc: "点击『生成粒子』按钮，自动创建 Ctrl_Starfield", accent: false },
+      { icon: "🎛️", name: "微调效果", desc: "在 Effect Controls 面板调整所有滑块参数", accent: false },
+      { icon: "💾", name: "保存预设", desc: "保存到槽位或导出文件，下次直接加载", accent: true }
+    ],
+    flowLabels: ["调参", "→", "生成", "→", "微调", "→", "保存", "→", "复用"]
+  },
+
+  install: {
+    sectionNumber: "03",
+    title: "安装",
+    titleEmphasis: "指南",
+    steps: [
+      { title: "下载脚本", desc: "从 GitHub Releases 下载 StarrySkyParticleGenerator_v3.1.2.zip" },
+      { title: "解压到目录", desc: "将 .jsx 文件放入 AE 的 ScriptUI Panels 目录" },
+      { title: "打开面板", desc: "重启 AE，菜单：窗口 > 星空粒子生成器" },
+      { title: "开始使用", desc: "打开或新建合成，设好参数，一键生成" }
+    ],
+    codeSnippet: '<span class="cm">安装路径:</span><br>C:\\Program Files\\Adobe\\<br>Adobe After Effects 2026\\<br>Support Files\\Scripts\\<br><span class="hl">ScriptUI Panels</span>\\<br>starry-sky-generator.jsx',
+    compatInfo: '● AE 2026 / CC 2020+ 兼容<br>● 支持中文/英文版 AE<br>● 无需第三方库<br>● 14 天免费使用',
+    downloadUrl: "https://github.com/Simiely/starry-sky-generator/releases",
+    downloadLabel: "⬇ 下载 v3.1.2"
+  },
+
+  cta: {
+    eyebrow: "Ready to create?",
+    title: "试试<br><em>一键星空</em>",
+    buttons: [
+      { url: "https://github.com/Simiely/starry-sky-generator", label: "★ Star on GitHub", primary: true },
+      { url: "https://github.com/Simiely/starry-sky-generator/releases", label: "⬇ 下载插件", primary: false },
+      { url: "https://github.com/Simiely/starry-sky-generator/issues", label: "💬 反馈", primary: false }
+    ],
+    metaHtml: 'MIT License · Made by <a href="https://github.com/Simiely" target="_blank">Simiely</a>'
+  },
+
+  dotLabels: ["Home", "Problem", "Features", "Usage", "Install", "CTA"]
+};
+</script>
+
+<a class="hub-back" href="https://simiely.github.io/hub-world/" id="hub-back-link" aria-label="Hub World">
+  <span class="hub-back__inner">
+    <img class="hub-back__logo" src="https://simiely.github.io/hub-world/logo.png" alt="Hub World" id="hub-back-logo">
+    <span id="hub-back-label">Hub World</span>
+  </span>
+</a>
+
+<nav class="nav">
+  <div class="nav__brand">
+    <span class="dot"></span>
+    <span id="brand-name">Starry Sky v3.1.2</span>
+  </div>
+  <div class="nav__meta">
+    <a href="https://github.com/Simiely/starry-sky-generator" target="_blank" id="nav-github-link" class="nav__link-text">GitHub</a>
+    <a href="https://github.com/Simiely/starry-sky-generator" target="_blank" id="nav-version-link" style="text-decoration:none;color:inherit"><span class="nav__ver" id="nav-version">v3.1.2</span></a>
+  </div>
+</nav>
+
+<div class="dots" id="dots">
+  <button class="dot-btn active" data-index="0" data-label="Home" aria-label="Home"></button>
+  <button class="dot-btn" data-index="1" data-label="Problem" aria-label="Problem"></button>
+  <button class="dot-btn" data-index="2" data-label="Features" aria-label="Features"></button>
+  <button class="dot-btn" data-index="3" data-label="Usage" aria-label="Usage"></button>
+  <button class="dot-btn" data-index="4" data-label="Install" aria-label="Install"></button>
+  <button class="dot-btn" data-index="5" data-label="CTA" aria-label="CTA"></button>
+</div>
+
+<div class="hint" id="hint">
+  <span class="mouse"></span>
+  <span>Scroll</span>
+</div>
+
+<div class="deck" id="deck">
+
+  <section class="slide hero">
+    <div class="hero__inner">
+      <div>
+        <div class="anim d1">
+          <h1 class="hero__title">
+            <span id="hero-title-1">Starry</span><br>
+            <span class="l2"><span id="hero-title-2">Sky</span> <em id="hero-title-em">Particle</em></span>
+          </h1>
+        </div>
+        <div class="hero__feat anim d2">
+          <div class="hero__feat-label" id="hero-feat-label">v3.1.2</div>
+          <div class="hero__feat-text" id="hero-feat-text">AE 一键生成 <b>星空粒子</b><br>4 种形状 · HSL · 模糊 · 闪烁 · 吸引</div>
+        </div>
+        <div class="hero__sub anim d3" id="hero-subtitle">
+          AE ScriptUI 面板插件，快速生成大量可控的<b>星空粒子效果</b>
+        </div>
+      </div>
+      <div class="badge-area anim scale d4">
+        <div class="badge-area__label" id="hero-badge-label">形状</div>
+        <div class="badge-area__icon" id="hero-badge-icon">✦</div>
+        <div class="badge-area__tags" id="hero-badge-tags">
+          <span>圆形</span><span>五边形</span><span>六边形</span><span>方形</span>
+        </div>
+      </div>
+    </div>
+    <div class="ticker">
+      <div class="ticker__track" id="ticker-track"></div>
+    </div>
+  </section>
+
+  <section class="slide problem" data-mouse-parallax>
+    <div class="problem__inner">
+      <div class="problem__eyebrow anim d1">
+        <span class="bar"></span>
+        <span id="problem-eyebrow">痛点</span>
+      </div>
+      <h2 class="problem__title anim d2" id="problem-title">
+        手调星空动画<br>太<em>慢了</em>
+      </h2>
+      <p class="problem__sub anim d3" id="problem-desc">
+        逐帧 K 关键帧、手动画椭圆遮罩、调色……200 粒子的星空要<strong>花数小时</strong>。这应该自动化。
+      </p>
+      <div class="problem__stat anim d4" id="problem-stats"></div>
+    </div>
+  </section>
+
+  <section class="slide" id="slide-features">
+    <div class="sec__head anim d1">
+      <span class="sec__num" id="feat-section-num">01</span>
+      <h2 class="sec__title"><span id="feat-title">核心</span><em id="feat-title-em">功能</em></h2>
+    </div>
+    <div class="feat" id="feat-grid"></div>
+  </section>
+
+  <section class="slide" id="slide-usage">
+    <div class="sec__head anim d1">
+      <span class="sec__num" id="usage-section-num">02</span>
+      <h2 class="sec__title"><span id="usage-title">快速</span><em id="usage-title-em">上手</em></h2>
+    </div>
+    <div class="how__grid" id="usage-grid"></div>
+  </section>
+
+  <section class="slide install" id="slide-install">
+    <div class="sec__head anim d1">
+      <span class="sec__num" id="install-section-num">03</span>
+      <h2 class="sec__title"><span id="install-title">安装</span><em id="install-title-em">指南</em></h2>
+    </div>
+    <div class="install__grid">
+      <div>
+        <ul class="install__steps" id="install-steps"></ul>
+      </div>
+      <div class="anim d4">
+        <div class="install__code" id="install-code-snippet"></div>
+        <div class="install__code" style="margin-top:12px;padding:12px 20px" id="install-compat-info"></div>
+        <div style="margin-top:20px;">
+          <a href="#" target="_blank" class="btn-primary" id="install-download-btn" style="display:inline-flex;font-size:13px;padding:12px 28px;">⬇ 下载 v3.1.2</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="slide cta">
+    <div class="cta__inner">
+      <div class="cta__eyebrow anim d1" id="cta-eyebrow">Ready to create?</div>
+      <h2 class="cta__title anim d2" id="cta-title">试试<br><em>一键星空</em></h2>
+      <div class="cta__btns anim d3" id="cta-buttons"></div>
+      <p class="cta__meta anim d4" id="cta-meta"></p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var cfg = CONFIG;
+  document.documentElement.style.setProperty('--rose', cfg.accentColor);
+  function hexToRgb(hex){var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return r+','+g+','+b}
+  function darkenHex(hex,a){var c=function(v){return Math.max(0,parseInt(v,16)-a).toString(16).padStart(2,'0')};return '#'+c(hex.slice(1,3))+c(hex.slice(3,5))+c(hex.slice(5,7))}
+  var rgb=hexToRgb(cfg.accentColor);document.documentElement.style.setProperty('--rose-rgb',rgb);document.documentElement.style.setProperty('--rose-deep',darkenHex(cfg.accentColor,30));
+  document.title=cfg.pageTitle;document.getElementById('brand-name').textContent=cfg.brand;document.getElementById('nav-version').textContent=cfg.version;document.getElementById('nav-github-link').href=cfg.repoUrl;document.getElementById('nav-version-link').href=cfg.repoUrl;
+  document.getElementById('hero-title-1').textContent=cfg.hero.titleLine1;document.getElementById('hero-title-2').textContent=cfg.hero.titleLine2;document.getElementById('hero-title-em').textContent=cfg.hero.titleEmphasis;document.getElementById('hero-feat-label').textContent=cfg.hero.featureLabel;document.getElementById('hero-feat-text').innerHTML=cfg.hero.featureText;document.getElementById('hero-subtitle').innerHTML=cfg.hero.subtitle;document.getElementById('hero-badge-label').textContent=cfg.hero.badgeLabel;document.getElementById('hero-badge-icon').textContent=cfg.hero.badgeIcon;
+  var tagC=document.getElementById('hero-badge-tags');tagC.innerHTML='';if(cfg.hero.tags&&cfg.hero.tags.length){cfg.hero.tags.forEach(function(t){var s=document.createElement('span');s.textContent=t;tagC.appendChild(s)})}
+  var tT=document.getElementById('ticker-track');tT.innerHTML='';if(cfg.hero.tickerItems&&cfg.hero.tickerItems.length){var d=cfg.hero.tickerItems.concat(cfg.hero.tickerItems);d.forEach(function(i){var s=document.createElement('span');s.className='ticker__item';s.textContent=i;tT.appendChild(s)})}
+  document.getElementById('problem-eyebrow').textContent=cfg.problem.eyebrow;document.getElementById('problem-title').innerHTML=cfg.problem.title;document.getElementById('problem-desc').innerHTML=cfg.problem.description;
+  var sC=document.getElementById('problem-stats');sC.innerHTML='';if(cfg.problem.stats&&cfg.problem.stats.length){cfg.problem.stats.forEach(function(s){var i=document.createElement('div');i.className='item';i.innerHTML='<span class="n">'+s.number+'</span><span class="l">'+s.label.replace(/\\n/g,'<br>')+'</span>';sC.appendChild(i)})}
+  document.getElementById('feat-section-num').textContent=cfg.features.sectionNumber;document.getElementById('feat-title').textContent=cfg.features.title;document.getElementById('feat-title-em').textContent=cfg.features.titleEmphasis;
+  var fG=document.getElementById('feat-grid');fG.innerHTML='';if(cfg.features.items&&cfg.features.items.length){cfg.features.items.forEach(function(f,i){var n=(i+1).toString().padStart(2,'0'),c=document.createElement('div');c.className='feat__cell anim scale d'+Math.min(i+2,7);c.innerHTML='<span class="feat__num">'+n+'</span><div><div class="feat__icon">'+f.icon+'</div><div class="feat__name">'+f.name+'</div><div class="feat__desc">'+f.desc+'</div></div>';fG.appendChild(c)})}
+  document.getElementById('usage-section-num').textContent=cfg.usage.sectionNumber;document.getElementById('usage-title').textContent=cfg.usage.title;document.getElementById('usage-title-em').textContent=cfg.usage.titleEmphasis;
+  var uG=document.getElementById('usage-grid');uG.innerHTML='';if(cfg.usage.steps&&cfg.usage.steps.length){cfg.usage.steps.forEach(function(s,i){var c=document.createElement('div'),a=(i%2===0)?'from-l':'from-r';c.className='how__cell'+(s.accent?' how__cell--accent':'')+' anim '+a+' d'+(i+2);c.innerHTML='<span class="how__step">0'+(i+1)+'</span><div class="how__icon">'+s.icon+'</div><div><div class="how__name">'+s.name+'</div><div class="how__desc">'+s.desc+'</div></div>';uG.appendChild(c)});var fB=document.createElement('div');fB.className='how__flow anim d'+Math.min(cfg.usage.steps.length+2,8);fB.innerHTML=cfg.usage.flowLabels.map(function(l){return l==='→'?'<span class="arrow">→</span>':'<span>'+l+'</span>'}).join('');uG.appendChild(fB)}
+  document.getElementById('install-section-num').textContent=cfg.install.sectionNumber;document.getElementById('install-title').textContent=cfg.install.title;document.getElementById('install-title-em').textContent=cfg.install.titleEmphasis;
+  var iS=document.getElementById('install-steps');iS.innerHTML='';if(cfg.install.steps&&cfg.install.steps.length){cfg.install.steps.forEach(function(s,i){var l=document.createElement('li');l.className='install__step anim d'+(i+2);l.innerHTML='<span class="install__step-num">'+(i+1)+'</span><div class="install__step-body"><div class="install__step-title">'+s.title+'</div><div class="install__step-desc">'+s.desc+'</div></div>';iS.appendChild(l)})}
+  document.getElementById('install-code-snippet').innerHTML=cfg.install.codeSnippet;document.getElementById('install-compat-info').innerHTML=cfg.install.compatInfo;var dB=document.getElementById('install-download-btn');dB.href=cfg.install.downloadUrl;dB.innerHTML=cfg.install.downloadLabel;
+  document.getElementById('cta-eyebrow').textContent=cfg.cta.eyebrow;document.getElementById('cta-title').innerHTML=cfg.cta.title;
+  var cB=document.getElementById('cta-buttons');cB.innerHTML='';if(cfg.cta.buttons&&cfg.cta.buttons.length){cfg.cta.buttons.forEach(function(b){var a=document.createElement('a');a.href=b.url;a.target='_blank';a.className=b.primary?'btn-primary':'btn-ghost';a.textContent=b.label;cB.appendChild(a)})}
+  document.getElementById('cta-meta').innerHTML=cfg.cta.metaHtml;
+  var dBtns=document.querySelectorAll('.dot-btn');cfg.dotLabels.forEach(function(l,i){if(dBtns[i]){dBtns[i].setAttribute('data-label',l);dBtns[i].setAttribute('aria-label',l)}})
+})();
+</script>
+
+<script>
+(function(){
+  var deck=document.getElementById('deck'),slides=deck.querySelectorAll('.slide'),dots=document.querySelectorAll('.dot-btn'),hint=document.getElementById('hint'),activeIndex=-1,ticking=false;
+  function updateActive(){
+    var st=deck.scrollTop,vh=deck.clientHeight,bi=0,bd=Infinity;
+    slides.forEach(function(s,i){var r=s.getBoundingClientRect(),m=r.top+r.height/2,d=Math.abs(m-vh/2);if(d<bd){bd=d;bi=i}});
+    if(bi!==activeIndex){activeIndex=bi;dots.forEach(function(d,i){d.classList.toggle('active',i===activeIndex)});slides.forEach(function(s,i){s.classList.toggle('is-active',i===activeIndex)})}
+    st>10?hint.classList.add('hide'):hint.classList.remove('hide')
+  }
+  deck.addEventListener('scroll',function(){if(!ticking){requestAnimationFrame(function(){updateActive();ticking=false});ticking=true}});
+  dots.forEach(function(dot){dot.addEventListener('click',function(){var idx=parseInt(dot.dataset.index),target=slides[idx];if(target)target.scrollIntoView({behavior:'smooth'})})});
+  var ps=document.querySelector('.problem');if(ps){document.addEventListener('mousemove',function(e){var r=ps.getBoundingClientRect();if(r.top<window.innerHeight&&r.bottom>0){var x=(e.clientX/window.innerWidth)*100,y=(e.clientY/window.innerHeight)*100;ps.style.setProperty('--mx',x+'%');ps.style.setProperty('--my',y+'%')}})}
+  updateActive()
+})();
+</script>
+</body>
+</html>
