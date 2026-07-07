@@ -510,29 +510,40 @@
             p.push('var attraction = 0;');
         }
 
-        // ===== 运动与 Wrap =====
+        // ===== 运动：方向融合吸引 =====
         p.push('');
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
         p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         p.push('var speed = random(speedMin, speedMax);');
-        // 发射随机偏移：每粒子独立时间偏移，错开出生
+
+        // 计算当前应处位置（不受吸引影响，用于计算朝向目标的距离）
         p.push('var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;');
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 8000, true);');
         p.push('var timeShift = emitOff > 0 ? random(0, emitOff) : 0;');
         p.push('var adjTime = time + timeShift;');
         p.push('var tLocal = adjTime % eLifeDur;');
-        p.push('var driftX = Math.cos(angle) * speed * tLocal;');
-        p.push('var driftY = Math.sin(angle) * speed * tLocal;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
+
+        // 方向融合：attraction 0→原方向，10→指向目标
         p.push('var vx = Math.cos(angle) * speed;');
         p.push('var vy = Math.sin(angle) * speed;');
-        p.push('if (tLocal < attractDur && attraction > 0) {');
-        p.push('    var curX = startX + driftX;');
-        p.push('    var curY = startY + driftY;');
+        p.push('if (tLocal < attractDur && attraction > 0.01) {');
+        p.push('    var curX = startX + Math.cos(angle) * speed * tLocal;');
+        p.push('    var curY = startY + Math.sin(angle) * speed * tLocal;');
         p.push('    var toX = tX - curX;');
         p.push('    var toY = tY - curY;');
-        p.push('    var toD = Math.sqrt(toX*toX + toY*toY);');
-        p.push('    if (toD > 1) { vx += (toX / toD) * attraction * speed; vy += (toY / toD) * attraction * speed; }');
+        p.push('    var toDist = Math.sqrt(toX*toX + toY*toY);');
+        p.push('    if (toDist > 1) {');
+        p.push('        var attract = Math.min(attraction / 10, 1);');
+        p.push('        var dx = Math.cos(angle);');
+        p.push('        var dy = Math.sin(angle);');
+        p.push('        var blX = dx * (1 - attract) + (toX / toDist) * attract;');
+        p.push('        var blY = dy * (1 - attract) + (toY / toDist) * attract;');
+        p.push('        var blLen = Math.sqrt(blX*blX + blY*blY);');
+        p.push('        if (blLen > 0.001) { blX /= blLen; blY /= blLen; }');
+        p.push('        vx = blX * speed;');
+        p.push('        vy = blY * speed;');
+        p.push('    }');
         p.push('}');
         p.push('var rawX = startX + vx * tLocal;');
         p.push('var rawY = startY + vy * tLocal;');
