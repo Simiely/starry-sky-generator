@@ -349,7 +349,7 @@
         addSliderToLayer(nullLayer, "模糊强度", 0, "粒子边缘柔化程度（像素）");
         addSliderToLayer(nullLayer, "模糊比例(%)", 100, "被模糊的粒子比例（0=全清晰 100=全模糊）");
         // === v3.1.2 发射区域 + 目标吸引 ===
-        addSliderToLayer(nullLayer, "吸引力", 0, "粒子被目标吸引的强度（0=无吸引）");
+        addSliderToLayer(nullLayer, "吸引力", 0, "粒子被目标吸引的强度（0=无吸引，值越大越强）");
         addSliderToLayer(nullLayer, "吸引时长", 2, "粒子开始被吸引的延迟时间（秒）");
         addSliderToLayer(nullLayer, "发射密度", 100, "粒子在遮罩范围内的分布密度");
         addSliderToLayer(nullLayer, "发射随机偏移", 0, "粒子发射位置的随机偏移量（秒）");
@@ -480,7 +480,7 @@
             p.push('');
             p.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
             p.push('var tX = tPos[0], tY = tPos[1];');
-            p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
+            p.push('var attraction = ' + fx('吸引力', 0) + ';');
         } else if (targetMode === 2 && targetLayer && targetMask) {
             p.push('');
             p.push('var tLayer = thisComp.layer("' + targetLayer + '");');
@@ -503,7 +503,7 @@
             p.push('var tPt = tPts.length > 0 ? tLayer.toComp([random(tL, tR), random(tT, tB)]) : [random(tL, tR), random(tT, tB)];');
             p.push('var tX = tPt[0];');
             p.push('var tY = tPt[1];');
-            p.push('var attraction = ' + fx('吸引力', 0) + ' / 100;');
+            p.push('var attraction = ' + fx('吸引力', 0) + ';');
         } else {
             p.push('');
             p.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
@@ -1306,14 +1306,14 @@
         var m5 = motionGroup.add("group");
         m5.orientation = "row";
         m5.add("statictext", undefined, "吸引力:");
-        var attractSlider = m5.add("slider", undefined, 0, 0, 100);
+        var attractSlider = m5.add("slider", undefined, 0, 0, 10);
         
         var attractValue = m5.add("edittext", undefined, "0");
         attractValue.preferredSize = [55, 20]; attractValue.characters = 5;
-        m5.add("statictext", undefined, "%").preferredSize = [18, 18];
-        
-        attractSlider.onChanging = function() { attractValue.text = Math.round(attractSlider.value).toString(); };
-        attractValue.onChange = function() { var v = parseInt(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(100, v)); };
+        m5.add("statictext", undefined, "x (强度)").preferredSize = [60, 18];
+
+        attractSlider.onChanging = function() { attractValue.text = (Math.round(attractSlider.value * 10) / 10).toString(); };
+        attractValue.onChange = function() { var v = parseFloat(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(10, v)); };
 
         m5.add("statictext", undefined, "时长:");
         var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
@@ -1640,7 +1640,7 @@
                 if (p.emitDen !== undefined)    emitDenSlider.value = p.emitDen;
                 if (p.targetMode !== undefined) targetModeDrop.selection = p.targetMode;
                 if (p.attractDur !== undefined) { attractDurSlider.value = p.attractDur; attractDurInput.text = (Math.round(p.attractDur * 10) / 10).toString(); }
-                if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction).toString(); }
+                if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = (Math.round(p.attraction * 10) / 10).toString(); }
                 if (p.wrapAround !== undefined) wrapCheck.value = p.wrapAround;
                 if (p.emitOff !== undefined) { emitOffSlider.value = p.emitOff; emitOffValue.text = Math.round(p.emitOff * 10) / 10 + "s"; }
                 if (p.blur !== undefined) { blurSlider.value = p.blur; blurValue.text = Math.round(p.blur).toString(); }
@@ -1703,7 +1703,7 @@
                 targetLayer: (targetLayerDrop.selection && targetLayerDrop.selection.text.indexOf("(") !== 0) ? targetLayerDrop.selection.text : "",
                 targetMask: (targetModeDrop.selection && targetModeDrop.selection.index === 2 && targetMaskDrop.selection && targetMaskDrop.selection.text.indexOf("(") !== 0) ? targetMaskDrop.selection.text : "",
                 attractDur: parseFloat(attractDurInput.text) || 2,
-                attraction: Math.round(attractSlider.value),
+                attraction: Math.round(attractSlider.value * 10) / 10,
                 wrapAround: wrapCheck.value,
                 emitOff: parseFloat(emitOffValue.text) || 0
             };
@@ -1788,7 +1788,7 @@
             emitDenVal.text = Math.round(emitDenSlider.value) + "%";
             targetModeDrop.selection = preset["目标模式"] || 0;
             attractSlider.value = preset["吸引力"] || 0;
-            attractValue.text = Math.round(attractSlider.value).toString();
+            attractValue.text = (Math.round(attractSlider.value * 10) / 10).toString();
             attractDurSlider.value = preset["吸引时长"] || 2;
             attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
             try { updateColorSwatch(); } catch (e) {}
