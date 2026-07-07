@@ -1,10 +1,10 @@
 /* ============================================================
-   星空粒子生成器  v2.0
+   星空粒子生成器  v3.1.2
    Starry Sky Particle Generator for Adobe After Effects 2026
 
-   基于 v1.4 Solid 方案，新增形状选择
-   - 正方形: Solid 层（v1.4 原始方案）
-   - 圆形: Solid + 椭圆 Mask
+   基于 v3.1.2 Mask Feather + ScriptUI 优化
+   - 圆形/多边形: Solid + Mask（Mask Feather 模糊）
+   - 正方形: Solid（Gaussian Blur 效果）
 
    安装：放入 AE 2026 的 ScriptUI Panels 目录
    路径：C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\Scripts\ScriptUI Panels
@@ -145,25 +145,22 @@
 
         var dlg = new Window("dialog", "错误报告 - 星空粒子生成器");
         dlg.orientation = "column";
-        dlg.alignChildren = ["fill", "top"];
+
         dlg.spacing = 8;
         dlg.margins = [12, 12, 12, 12];
         dlg.add("statictext", undefined, title);
 
         var detailScroll = dlg.add("edittext", undefined, reportStr,
             { multiline: true, readonly: true, scrolling: true });
-        detailScroll.preferredSize = [420, 300];
-
+        
         var btnGroup = dlg.add("group");
         btnGroup.orientation = "row";
-        btnGroup.alignment = ["center", "bottom"];
         btnGroup.spacing = 10;
 
         var copyBtn = btnGroup.add("button", undefined, "复制错误信息到剪贴板");
-        copyBtn.preferredSize = [180, 28];
+        
         var closeBtn = btnGroup.add("button", undefined, "关闭");
-        closeBtn.preferredSize = [80, 28];
-
+        
         copyBtn.onClick = function() {
             try {
                 var clipFile = new File(Folder.temp.fsName + "/ae_starry_error.txt");
@@ -235,10 +232,10 @@
                 return false;
             }
             shapeProp.setValue(maskShape);
-            return true;
+            return mask;
         } catch (e) {
             debugLog("  addCircleMask failed: " + e.toString());
-            return false;
+            return null;
         }
     }
 
@@ -248,7 +245,7 @@
             if (!maskGroup) { return false; }
             var mask = addPropertySafe(maskGroup,
                 ["ADBE Mask Atom", "ADBE Mask Atom-0001", "Mask"]);
-            if (!mask) { return false; }
+            if (!mask) { return null; }
             mask.name = "Polygon_" + sides;
 
             var cx = 50, cy = 50, r = 45;
@@ -266,10 +263,10 @@
                 ["ADBE Mask Shape", "Mask Shape", "蒙版路径"]);
             if (!shapeProp) { return false; }
             shapeProp.setValue(maskShape);
-            return true;
+            return mask;
         } catch (e) {
             debugLog("  addPolygonMask failed (sides=" + sides + "): " + e.toString());
-            return false;
+            return null;
         }
     }
 
@@ -296,7 +293,7 @@
                 if (app.project.items[ci] instanceof CompItem &&
                     app.project.items[ci].name === compName) {
                     exists = true;
-                    break;
+                    
                 }
             }
             if (!exists) break;
@@ -326,44 +323,46 @@
         nullLayer.name = controllerName;
         nullLayer.label = 9; // 绿色标签，方便在时间轴中识别
 
-        addSliderToLayer(nullLayer, "粒子数量", 50);
-        addSliderToLayer(nullLayer, "最小尺寸", 3);
-        addSliderToLayer(nullLayer, "最大尺寸", 15);
-        addSliderToLayer(nullLayer, "初始大小(%)", 80);
-        addSliderToLayer(nullLayer, "最终大小(%)", 100);
-        addSliderToLayer(nullLayer, "缩放最小变化(%)", 80);
-        addSliderToLayer(nullLayer, "缩放最大变化(%)", 120);
-        addSliderToLayer(nullLayer, "色相(0-360)", 210);
-        addSliderToLayer(nullLayer, "色相随机范围", 30);
-        addSliderToLayer(nullLayer, "饱和度", 80);
-        addSliderToLayer(nullLayer, "亮度", 50);
-        addSliderToLayer(nullLayer, "运动方向(度)", 270);
-        addSliderToLayer(nullLayer, "方向随机范围", 180);
-        addSliderToLayer(nullLayer, "最小速度", 30);
-        addSliderToLayer(nullLayer, "最大速度", 100);
-        addSliderToLayer(nullLayer, "最小生命周期(秒)", 2);
-        addSliderToLayer(nullLayer, "最大生命周期(秒)", 6);
-        addSliderToLayer(nullLayer, "淡入时长(秒)", 0.3);
-        addSliderToLayer(nullLayer, "淡出时长(秒)", 0.8);
-        addSliderToLayer(nullLayer, "闪烁强度", 50);
-        addSliderToLayer(nullLayer, "闪烁速度", 2);
-        addSliderToLayer(nullLayer, "随机种子", 42);
+        addSliderToLayer(nullLayer, "粒子数量", 50, "生成粒子的总数（10~2000）");
+        addSliderToLayer(nullLayer, "最小尺寸", 3, "粒子的最小尺寸（像素）");
+        addSliderToLayer(nullLayer, "最大尺寸", 15, "粒子的最大尺寸（像素）");
+        addSliderToLayer(nullLayer, "初始大小(%)", 80, "粒子出生时的缩放比例");
+        addSliderToLayer(nullLayer, "最终大小(%)", 100, "粒子消亡时的缩放比例");
+        addSliderToLayer(nullLayer, "缩放最小变化(%)", 80, "每个粒子缩放的随机下限");
+        addSliderToLayer(nullLayer, "缩放最大变化(%)", 120, "每个粒子缩放的随机上限");
+        addSliderToLayer(nullLayer, "色相(0-360)", 210, "整体色相角度（0=红 120=绿 240=蓝）");
+        addSliderToLayer(nullLayer, "色相随机范围", 30, "每个粒子偏离整体色相的最大角度");
+        addSliderToLayer(nullLayer, "饱和度", 80, "颜色饱和度（0=灰 100=鲜艳）");
+        addSliderToLayer(nullLayer, "亮度", 50, "颜色亮度（0=黑 100=白）");
+        addSliderToLayer(nullLayer, "运动方向(度)", 270, "粒子主运动方向（0=右 90=下 180=左 270=上）");
+        addSliderToLayer(nullLayer, "方向随机范围", 180, "每个粒子运动方向的随机扩散角度");
+        addSliderToLayer(nullLayer, "最小速度", 30, "粒子运动的最小速度（像素/秒）");
+        addSliderToLayer(nullLayer, "最大速度", 100, "粒子运动的最大速度（像素/秒）");
+        addSliderToLayer(nullLayer, "最小生命周期(秒)", 2, "粒子的最短存活时间");
+        addSliderToLayer(nullLayer, "最大生命周期(秒)", 6, "粒子的最长存活时间");
+        addSliderToLayer(nullLayer, "淡入时长(秒)", 0.3, "粒子出生时的淡入时间");
+        addSliderToLayer(nullLayer, "淡出时长(秒)", 0.8, "粒子消亡前的淡出时间");
+        addSliderToLayer(nullLayer, "闪烁强度", 50, "亮度波动的幅度（0=不闪烁）");
+        addSliderToLayer(nullLayer, "闪烁速度", 2, "亮度波动的频率");
+        addSliderToLayer(nullLayer, "随机种子", 42, "改变随机种子可重置所有粒子的分布");
         // === 模糊控制 ===
-        addSliderToLayer(nullLayer, "模糊强度", 0);
-        // === v2.0 发射区域 + 目标吸引 ===
-        addSliderToLayer(nullLayer, "吸引力", 0);
-        addSliderToLayer(nullLayer, "吸引时长", 2);
-        addSliderToLayer(nullLayer, "发射密度", 100);
-        addSliderToLayer(nullLayer, "发射随机偏移", 0);
+        addSliderToLayer(nullLayer, "模糊强度", 0, "粒子边缘柔化程度（像素）");
+        addSliderToLayer(nullLayer, "模糊比例(%)", 100, "被模糊的粒子比例（0=全清晰 100=全模糊）");
+        // === v3.1.2 发射区域 + 目标吸引 ===
+        addSliderToLayer(nullLayer, "吸引力", 0, "粒子被目标吸引的强度（0=无吸引）");
+        addSliderToLayer(nullLayer, "吸引时长", 2, "粒子开始被吸引的延迟时间（秒）");
+        addSliderToLayer(nullLayer, "发射密度", 100, "粒子在遮罩范围内的分布密度");
+        addSliderToLayer(nullLayer, "发射随机偏移", 0, "粒子发射位置的随机偏移量（秒）");
         return nullLayer;
     }
 
-    function addSliderToLayer(layer, name, defaultValue) {
+    function addSliderToLayer(layer, name, defaultValue, comment) {
         var fxGroup = layer.property("ADBE Effect Parade");
         var effect = addPropertySafe(fxGroup,
             ["ADBE Slider Control", "ADBE Slider Control-0001", "滑块控制"]);
         if (!effect) throw new Error("无法添加滑块控制器: " + name);
         effect.name = name;
+        if (comment) effect.comment = comment;
         var sliderProp = getPropertySafe(effect,
             ["ADBE Slider Control-0001", "滑块", "Slider"]);
         sliderProp.setValue(defaultValue);
@@ -392,7 +391,7 @@
                     var sp = getPropertySafe(effects.property(i),
                         ["ADBE Slider Control-0001", "滑块", "Slider"]);
                     if (sp) sp.setValue(value);
-                    return;
+                    
                 }
             }
         } catch (e) {
@@ -644,9 +643,12 @@
             'seedRandom(index, true);',
             'var ctrl = thisComp.layer("Ctrl_Starfield");',
             'var blurStr = ctrl.effect("模糊强度") ? ctrl.effect("模糊强度")(1) : 0;',
+            'var blurPct = ctrl.effect("模糊比例(%)") ? ctrl.effect("模糊比例(%)")(1) : 100;',
             'var seedVal = ctrl.effect("随机种子") ? ctrl.effect("随机种子")(1) : 42;',
             'seedRandom(index + seedVal + 10000, true);',
-            'random(0, blurStr);'
+            'var doBlur = random(0, 100) < blurPct;',
+            'var b = doBlur ? random(0, blurStr) : 0;',
+            '[b, b];'
         ].join('\n');
     }
 
@@ -710,28 +712,42 @@
                     }
                 }
 
-                // === 高斯模糊（Fast Blur） ===
-                var blurFx = addPropertySafe(fx,
-                    ["ADBE Fast Blur", "ADBE Gaussian Blur", "Fast Blur"]);
-                if (blurFx) {
-                    // 模糊度的属性通常是第1个滑块
-                    try {
-                        blurFx.property(1).expression = blurExpr;
-                    } catch (eBlur) {
-                        debugLog("    blur property(1) failed for particle " + p);
-                    }
-                }
-
                 // === 形状 ===
+                // 蒙版扩展 = -蒙版羽化（直接读取羽化值，保证同步）
+                var expandExpr = 'var f = mask(1).maskFeather;\n-f[0];';
                 if (shapeIdx === 0) {
                     // 圆形：添加椭圆 mask
-                    addCircleMask(solid);
+                    var mask = addCircleMask(solid);
+                    if (mask) {
+                        try { mask.property("ADBE Mask Feather").expression = blurExpr; } catch (e) {}
+                        try { mask.property(4).expression = expandExpr; } catch (e) {}
+                    }
                 } else if (shapeIdx === 2) {
                     // 五边形
-                    addPolygonMask(solid, 5);
+                    var mask = addPolygonMask(solid, 5);
+                    if (mask) {
+                        try { mask.property("ADBE Mask Feather").expression = blurExpr; } catch (e) {}
+                        try { mask.property(4).expression = expandExpr; } catch (e) {}
+                    }
                 } else if (shapeIdx === 3) {
                     // 六边形
-                    addPolygonMask(solid, 6);
+                    var mask = addPolygonMask(solid, 6);
+                    if (mask) {
+                        try { mask.property("ADBE Mask Feather").expression = blurExpr; } catch (e) {}
+                        try { mask.property(4).expression = expandExpr; } catch (e) {}
+                    }
+                } else if (shapeIdx === 1) {
+                    // 正方形：无 mask，用高斯模糊效果
+                    var blurFx = addPropertySafe(fx, ["ADBE Gaussian Blur", "ADBE Fast Blur"]);
+                    if (blurFx) {
+                        try {
+                            // 从 mask feather 表达式中提取单值（去掉 [b, b] 包装）
+                            var sqExpr = blurExpr.replace('[b, b];', 'b;');
+                            blurFx.property(1).expression = sqExpr;
+                        } catch (eBlur) {
+                            debugLog("    blur failed for particle " + p);
+                        }
+                    }
                 }
                 // shapeIdx === 1: 正方形（原生 Solid，不做任何处理）
 
@@ -795,7 +811,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 80, "缩放最大变化%": 120,
-            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0, "模糊比例%": 100
         },
             "彩色星云": {
             "粒子数量": 500, "最小尺寸": 3, "最大尺寸": 20,
@@ -809,7 +825,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 50, "最终大小%": 100, "缩放最小变化%": 50, "缩放最大变化%": 150,
-            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0, "模糊比例%": 100
         },
             "极光飘动": {
             "粒子数量": 400, "最小尺寸": 4, "最大尺寸": 25,
@@ -823,7 +839,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 80, "最终大小%": 100, "缩放最小变化%": 70, "缩放最大变化%": 130,
-            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0, "模糊比例%": 100
         },
             "金色粒子雨": {
             "粒子数量": 250, "最小尺寸": 2, "最大尺寸": 8,
@@ -837,7 +853,7 @@
             "目标模式": 0, "目标图层": "", "目标遮罩": "", "吸引力": 0,
             "吸引时长": 2,
             "初始大小%": 30, "最终大小%": 80, "缩放最小变化%": 60, "缩放最大变化%": 140,
-            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0
+            "发射密度": 100, "发射随机偏移": 0, "模糊强度": 0, "模糊比例%": 100
         }
     };
 
@@ -847,19 +863,18 @@
         debugLog("buildUI() starting...");
 
         var panel = (thisObj instanceof Panel) ? thisObj :
-            new Window("palette", "星空粒子生成器 v2.0", undefined, {resizeable: true});
+            new Window("palette", "星空粒子生成器 v3.1.2", undefined, {resizeable: true});
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
+        panel.preferredSize = [540, -1];
         panel.spacing = 3;
         panel.margins = [6, 6, 6, 6];
 
         // ===== 标题 =====
         var titleRow = panel.add("group");
         titleRow.orientation = "row";
-        titleRow.alignment = ["fill", "top"];
-        titleRow.alignChildren = ["left", "center"];
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v2.0");
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v3.1.2");
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -867,15 +882,13 @@
         // ===== 状态栏 =====
         var statusRow = panel.add("group");
         statusRow.orientation = "row";
-        statusRow.alignment = ["fill", "top"];
-        statusRow.alignChildren = ["left", "center"];
         statusRow.add("statictext", undefined, "状态: ");
         var statusText = statusRow.add("edittext", undefined, "就绪");
-        statusText.preferredSize = [200, 18];
+        
         statusText.active = false;
         function setStatus(msg) { statusText.text = msg; }
 
-        statusRow.add("statictext", undefined, "  AE " + app.version);
+        statusRow.add("statictext", undefined, "AE " + app.version);
 
         var line2 = panel.add("panel");
         line2.preferredSize = [-1, 2];
@@ -884,17 +897,18 @@
         //  粒子参数
         // ==============================
         var paramGroup = panel.add("panel");
-        paramGroup.text = " 粒子参数 ";
+        paramGroup.text = "粒子参数";
         paramGroup.orientation = "column";
-        paramGroup.alignChildren = ["fill", "top"];
+        paramGroup.alignChildren = ["left", "top"];
+        paramGroup.preferredSize = [540, -1];
         paramGroup.spacing = 2;
         paramGroup.margins = [4, 10, 4, 4];
 
         var r1 = paramGroup.add("group");
-        r1.orientation = "row"; r1.alignment = ["fill", "center"];
+        r1.orientation = "row";
         r1.add("statictext", undefined, "数量:");
         var countSlider = r1.add("slider", undefined, 50, 10, 2000);
-        countSlider.preferredSize = [100, 20];
+        
         var countValue = r1.add("edittext", undefined, "50");
         countValue.preferredSize = [55, 20]; countValue.characters = 5;
         countSlider.onChanging = function() { countValue.text = Math.round(countSlider.value).toString(); };
@@ -904,88 +918,86 @@
         };
 
         var r1b = paramGroup.add("group");
-        r1b.orientation = "row"; r1b.alignment = ["fill", "center"];
+        r1b.orientation = "row";
         r1b.add("statictext", undefined, "尺寸:");
         var sizeMinInput = r1b.add("edittext", undefined, "3");
         sizeMinInput.preferredSize = [55, 20]; sizeMinInput.characters = 5;
-        r1b.add("statictext", undefined, " → ").preferredSize = [25, 18];
+        r1b.add("statictext", undefined, "→ ").preferredSize = [20, 18];;
         var sizeMaxInput = r1b.add("edittext", undefined, "15");
         sizeMaxInput.preferredSize = [55, 20]; sizeMaxInput.characters = 5;
-        r1b.add("statictext", undefined, " px (像素)").preferredSize = [75, 18];
+        r1b.add("statictext", undefined, "px (像素)").preferredSize = [72, 18];;
 
         var r1d = paramGroup.add("group");
-        r1d.orientation = "row"; r1d.alignment = ["fill", "center"];
+        r1d.orientation = "row";
         r1d.add("statictext", undefined, "缩放:");
         var sizeInitInput = r1d.add("edittext", undefined, "80");
         sizeInitInput.preferredSize = [55, 20]; sizeInitInput.characters = 5;
-        r1d.add("statictext", undefined, "% →").preferredSize = [40, 18];
+        r1d.add("statictext", undefined, "% →").preferredSize = [32, 18];;
         var sizeFinalInput = r1d.add("edittext", undefined, "100");
         sizeFinalInput.preferredSize = [55, 20]; sizeFinalInput.characters = 5;
-        r1d.add("statictext", undefined, " %").preferredSize = [25, 18];
+        r1d.add("statictext", undefined, " %").preferredSize = [18, 18];
 
         // 随机缩放行
         var r1f = paramGroup.add("group");
-        r1f.orientation = "row"; r1f.alignment = ["fill", "center"];
+        r1f.orientation = "row";
         r1f.add("statictext", undefined, "随机缩放:");
         var svMinInput = r1f.add("edittext", undefined, "80");
         svMinInput.preferredSize = [55, 20]; svMinInput.characters = 5;
-        r1f.add("statictext", undefined, "% →").preferredSize = [40, 18];
+        r1f.add("statictext", undefined, "% →").preferredSize = [32, 18];;
         var svMaxInput = r1f.add("edittext", undefined, "120");
         svMaxInput.preferredSize = [55, 20]; svMaxInput.characters = 5;
-        r1f.add("statictext", undefined, " %").preferredSize = [25, 18];
+        r1f.add("statictext", undefined, " %").preferredSize = [18, 18];
 
         var r1c = paramGroup.add("group");
-        r1c.orientation = "row"; r1c.alignment = ["fill", "center"];
+        r1c.orientation = "row";
         r1c.add("statictext", undefined, "形状:");
         var shapeDropdown = r1c.add("dropdownlist", undefined, ["圆形", "正方形", "五边形", "六边形"]);
         shapeDropdown.selection = 0;
-        shapeDropdown.preferredSize = [120, 20];
-
+        
         var r1e = paramGroup.add("group");
-        r1e.orientation = "row"; r1e.alignment = ["fill", "center"];
+        r1e.orientation = "row";
         r1e.add("statictext", undefined, "颜色:");
         var colorSwatch = r1e.add("panel");
         colorSwatch.preferredSize = [18, 18];
-        colorSwatch.alignment = ["left", "center"];
+        
         var pickBtn = r1e.add("button", undefined, "\u2026");
-        pickBtn.preferredSize = [22, 20];
-
+        
         var r2 = paramGroup.add("group");
-        r2.orientation = "row"; r2.alignment = ["fill", "center"];
+        r2.orientation = "row";
 
         // 色相
         r2.add("statictext", undefined, "色相:");
         var hueSlider = r2.add("slider", undefined, 58, 0, 100);
-        hueSlider.preferredSize = [60, 20];
+        
         var hueValue = r2.add("edittext", undefined, "58");
         hueValue.preferredSize = [55, 20]; hueValue.characters = 5;
-        r2.add("statictext", undefined, "%").preferredSize = [20, 18];
+        r2.add("statictext", undefined, " %").preferredSize = [18, 18];
 
         // 饱和度
         r2.add("statictext", undefined, "饱和度:");
         var satSlider = r2.add("slider", undefined, 80, 0, 100);
-        satSlider.preferredSize = [60, 20];
+        
         var satValue = r2.add("edittext", undefined, "80");
         satValue.preferredSize = [55, 20]; satValue.characters = 5;
-        r2.add("statictext", undefined, "%").preferredSize = [20, 18];
+        r2.add("statictext", undefined, " %").preferredSize = [18, 18];
 
         // 第二行：亮度 + 色相扩散
         var r2b = paramGroup.add("group");
-        r2b.orientation = "row"; r2b.alignment = ["fill", "center"];
+        r2b.orientation = "row";
 
         r2b.add("statictext", undefined, "亮度:");
         var lightSlider = r2b.add("slider", undefined, 50, 0, 100);
-        lightSlider.preferredSize = [60, 20];
+        
         var lightValue = r2b.add("edittext", undefined, "50");
         lightValue.preferredSize = [55, 20]; lightValue.characters = 5;
-        r2b.add("statictext", undefined, "%").preferredSize = [20, 18];
+        r2b.add("statictext", undefined, " %").preferredSize = [18, 18];
 
         r2b.add("statictext", undefined, "色相扩散:");
         var hueVarSlider = r2b.add("slider", undefined, 30, 0, 360);
-        hueVarSlider.preferredSize = [60, 20];
+        
         var hueVarValue = r2b.add("edittext", undefined, "30");
         hueVarValue.preferredSize = [55, 20]; hueVarValue.characters = 5;
-        r2b.add("statictext", undefined, "deg (角度)").preferredSize = [65, 18];
+        r2b.add("statictext", undefined, "deg (角度)").preferredSize = [68, 18];;
 
         // HSL → RGB 颜色方块更新
         function updateColorSwatch() {
@@ -1035,32 +1047,32 @@
         //  发射区域（模式 + 遮罩选取）
         // ==============================
         var emitGroup = paramGroup.add("panel");
-        emitGroup.text = " 发射区域 (Emit Zone)";
+        emitGroup.text = "发射区域 (Emit Zone)";
         emitGroup.orientation = "column";
-        emitGroup.alignChildren = ["fill", "top"];
+        emitGroup.alignChildren = ["left", "top"];
+        emitGroup.preferredSize = [540, -1];
         emitGroup.spacing = 2;
         emitGroup.margins = [4, 10, 4, 4];
 
         var ee1 = emitGroup.add("group");
-        ee1.orientation = "row"; ee1.alignment = ["fill", "center"];
+        ee1.orientation = "row";
         ee1.add("statictext", undefined, "模式:");
         var emitModeDrop = ee1.add("dropdownlist", undefined, ["全合成", "遮罩范围"]);
         emitModeDrop.selection = 0;
-        emitModeDrop.preferredSize = [90, 20];
-
+        
         // 遮罩选层行（初始隐藏，mode=1 时显示）
         var ee2 = emitGroup.add("group");
-        ee2.orientation = "row"; ee2.alignment = ["fill", "center"];
+        ee2.orientation = "row";
         var emitRefLabel = ee2.add("statictext", undefined, "图层:");
-        emitRefLabel.preferredSize = [40, 18];
+        
         var emitLayerDrop = ee2.add("dropdownlist", undefined, ["(刷新)"]);
         emitLayerDrop.preferredSize = [-1, 20];
         var emitMaskLabel = ee2.add("statictext", undefined, "遮罩:");
-        emitMaskLabel.preferredSize = [40, 18];
+        
         var emitMaskDrop = ee2.add("dropdownlist", undefined, ["-"]);
         emitMaskDrop.preferredSize = [-1, 20];
         var emitRefreshBtn = ee2.add("button", undefined, "R");
-        emitRefreshBtn.preferredSize = [22, 20];
+        
         ee2.visible = false;
         // 初始颜色灰化
         ee2.enabled = true;
@@ -1111,7 +1123,7 @@
             try {
                 if (!emitModeDrop.selection || emitModeDrop.selection.index !== 1) {
                     emitStatus.text = "";
-                    return;
+                    
                 }
                 var lName = emitLayerDrop.selection ? emitLayerDrop.selection.text : "-";
                 var mName = emitMaskDrop.selection ? emitMaskDrop.selection.text : "-";
@@ -1131,12 +1143,12 @@
 
         // 密度行
         var ee3 = emitGroup.add("group");
-        ee3.orientation = "row"; ee3.alignment = ["fill", "center"];
+        ee3.orientation = "row";
         ee3.add("statictext", undefined, "密度 (百分比):");
         var emitDenSlider = ee3.add("slider", undefined, 100, 0, 100);
-        emitDenSlider.preferredSize = [100, 20];
-        var emitDenVal = ee3.add("statictext", undefined, "100%");
-        emitDenVal.preferredSize = [32, 18];
+        
+        var emitDenVal = ee3.add("statictext", undefined, "100%").preferredSize = [40, 18];
+        
         emitDenSlider.onChanging = function() { emitDenVal.text = Math.round(emitDenSlider.value) + "%"; };
         ee3.visible = false;
 
@@ -1149,7 +1161,7 @@
                 var maskParade = layer.property("ADBE Mask Parade");
                 if (!maskParade || maskParade.numProperties === 0) {
                     emitMaskDrop.add("item", "(无遮罩)");
-                    return;
+                    
                 }
                 for (var mi = 1; mi <= maskParade.numProperties; mi++) {
                     emitMaskDrop.add("item", maskParade.property(mi).name);
@@ -1163,20 +1175,21 @@
         //  运动控制
         // ==============================
         var motionGroup = panel.add("panel");
-        motionGroup.text = " 运动控制 ";
+        motionGroup.text = "运动控制";
         motionGroup.orientation = "column";
-        motionGroup.alignChildren = ["fill", "top"];
+        motionGroup.alignChildren = ["left", "top"];
+        motionGroup.preferredSize = [540, -1];
         motionGroup.spacing = 2;
         motionGroup.margins = [4, 10, 4, 4];
 
         var m1 = motionGroup.add("group");
-        m1.orientation = "row"; m1.alignment = ["fill", "center"];
+        m1.orientation = "row";
         m1.add("statictext", undefined, "主方向:");
         var dirSlider = m1.add("slider", undefined, 270, 0, 360);
-        dirSlider.preferredSize = [100, 20];
+        
         var dirValue = m1.add("edittext", undefined, "270");
         dirValue.preferredSize = [55, 20]; dirValue.characters = 5;
-        m1.add("statictext", undefined, " deg (角度)").preferredSize = [75, 18];
+        m1.add("statictext", undefined, "deg (角度)").preferredSize = [68, 18];;
         dirSlider.onChanging = function() { dirValue.text = Math.round(dirSlider.value).toString(); };
         dirValue.onChange = function() {
             var v = parseInt(dirValue.text);
@@ -1184,13 +1197,13 @@
         };
 
         var m2 = motionGroup.add("group");
-        m2.orientation = "row"; m2.alignment = ["fill", "center"];
+        m2.orientation = "row";
         m2.add("statictext", undefined, "方向扩散:");
         var spreadSlider = m2.add("slider", undefined, 180, 0, 360);
-        spreadSlider.preferredSize = [100, 20];
+        
         var spreadValue = m2.add("edittext", undefined, "180");
         spreadValue.preferredSize = [55, 20]; spreadValue.characters = 5;
-        m2.add("statictext", undefined, " +/- deg (角度)").preferredSize = [95, 18];
+        m2.add("statictext", undefined, "+/- deg (角度)").preferredSize = [108, 18];;
         spreadSlider.onChanging = function() { spreadValue.text = Math.round(spreadSlider.value).toString(); };
         spreadValue.onChange = function() {
             var v = parseInt(spreadValue.text);
@@ -1198,42 +1211,41 @@
         };
 
         var m3 = motionGroup.add("group");
-        m3.orientation = "row"; m3.alignment = ["fill", "center"];
+        m3.orientation = "row";
         m3.add("statictext", undefined, "速度:");
         var speedMinInput = m3.add("edittext", undefined, "30");
         speedMinInput.preferredSize = [55, 20]; speedMinInput.characters = 5;
-        m3.add("statictext", undefined, " → ").preferredSize = [25, 18];
+        m3.add("statictext", undefined, "→ ").preferredSize = [20, 18];;
         var speedMaxInput = m3.add("edittext", undefined, "100");
         speedMaxInput.preferredSize = [55, 20]; speedMaxInput.characters = 5;
-        m3.add("statictext", undefined, " px/s (像素/秒)").preferredSize = [105, 18];
+        m3.add("statictext", undefined, "px/s (像素/秒)").preferredSize = [108, 18];;
 
         // 目标吸引（v2.0: Null层选取）
         var m4 = motionGroup.add("group");
-        m4.orientation = "row"; m4.alignment = ["fill", "center"];
+        m4.orientation = "row";
         m4.add("statictext", undefined, "目标:");
         var targetModeDrop = m4.add("dropdownlist", undefined, ["无", "Null点", "遮罩范围"]);
         targetModeDrop.selection = 0;
-        targetModeDrop.preferredSize = [70, 20];
-
+        
         var m4b = motionGroup.add("group");
-        m4b.orientation = "row"; m4b.alignment = ["fill", "center"];
+        m4b.orientation = "row";
         var tgtLabel = m4b.add("statictext", undefined, "图层:");
-        tgtLabel.preferredSize = [40, 18];
+        
         var targetLayerDrop = m4b.add("dropdownlist", undefined, ["(刷新)"]);
         targetLayerDrop.preferredSize = [-1, 20];
         var tgtRefreshBtn = m4b.add("button", undefined, "R");
-        tgtRefreshBtn.preferredSize = [22, 20];
+        
         m4b.visible = false;
 
         // 目标遮罩选取行
         var m4c = motionGroup.add("group");
-        m4c.orientation = "row"; m4c.alignment = ["fill", "center"];
+        m4c.orientation = "row";
         var tgtMaskLabel = m4c.add("statictext", undefined, "遮罩:");
-        tgtMaskLabel.preferredSize = [40, 18];
+        
         var targetMaskDrop = m4c.add("dropdownlist", undefined, ["-"]);
         targetMaskDrop.preferredSize = [-1, 20];
         var tgtMaskRefreshBtn = m4c.add("button", undefined, "R");
-        tgtMaskRefreshBtn.preferredSize = [22, 20];
+        
         m4c.visible = false;
 
         targetModeDrop.onChange = function() {
@@ -1309,22 +1321,23 @@
         }
 
         var m5 = motionGroup.add("group");
-        m5.orientation = "row"; m5.alignment = ["fill", "center"];
+        m5.orientation = "row";
         m5.add("statictext", undefined, "吸引力:");
         var attractSlider = m5.add("slider", undefined, 0, 0, 100);
-        attractSlider.preferredSize = [80, 20];
-        var attractValue = m5.add("statictext", undefined, "0%");
-        attractValue.preferredSize = [30, 18];
-        var attractReset = m5.add("button", undefined, "0");
-        attractReset.preferredSize = [30, 20];
-        attractSlider.onChanging = function() { attractValue.text = Math.round(attractSlider.value) + "%"; };
-        attractReset.onClick = function() { attractSlider.value = 0; attractValue.text = "0%"; };
+        
+        var attractValue = m5.add("edittext", undefined, "0");
+        attractValue.preferredSize = [55, 20]; attractValue.characters = 5;
+        m5.add("statictext", undefined, "%").preferredSize = [18, 18];
+        
+        attractSlider.onChanging = function() { attractValue.text = Math.round(attractSlider.value).toString(); };
+        attractValue.onChange = function() { var v = parseInt(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(100, v)); };
 
         m5.add("statictext", undefined, "时长:");
         var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
-        attractDurSlider.preferredSize = [60, 20];
+        
         var attractDurInput = m5.add("edittext", undefined, "2");
         attractDurInput.preferredSize = [55, 20]; attractDurInput.characters = 5;
+        m5.add("statictext", undefined, "s (秒)").preferredSize = [48, 18];
         attractDurSlider.onChanging = function() {
             attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
         };
@@ -1341,55 +1354,57 @@
         //  生命周期
         // ==============================
         var lifeGroup = panel.add("panel");
-        lifeGroup.text = " 生命周期 ";
+        lifeGroup.text = "生命周期";
         lifeGroup.orientation = "column";
-        lifeGroup.alignChildren = ["fill", "top"];
+        lifeGroup.alignChildren = ["left", "top"];
+        lifeGroup.preferredSize = [540, -1];
         lifeGroup.spacing = 2;
         lifeGroup.margins = [4, 10, 4, 4];
 
         var l1 = lifeGroup.add("group");
-        l1.orientation = "row"; l1.alignment = ["fill", "center"];
+        l1.orientation = "row";
         l1.add("statictext", undefined, "时长:");
         var lifeMinInput = l1.add("edittext", undefined, "2");
         lifeMinInput.preferredSize = [55, 20]; lifeMinInput.characters = 5;
-        l1.add("statictext", undefined, " → ").preferredSize = [25, 18];
+        l1.add("statictext", undefined, "→ ").preferredSize = [20, 18];;
         var lifeMaxInput = l1.add("edittext", undefined, "6");
         lifeMaxInput.preferredSize = [55, 20]; lifeMaxInput.characters = 5;
-        l1.add("statictext", undefined, " s (秒)").preferredSize = [50, 18];
+        l1.add("statictext", undefined, "s (秒)").preferredSize = [48, 18];;
 
         var l2 = lifeGroup.add("group");
-        l2.orientation = "row"; l2.alignment = ["fill", "center"];
+        l2.orientation = "row";
         l2.add("statictext", undefined, "淡入:");
         var fadeInInput = l2.add("edittext", undefined, "0.3");
         fadeInInput.preferredSize = [55, 20]; fadeInInput.characters = 5;
-        l2.add("statictext", undefined, " s (秒)  淡出:").preferredSize = [85, 18];
+        l2.add("statictext", undefined, "s (秒)  淡出:").preferredSize = [100, 18];;
         var fadeOutInput = l2.add("edittext", undefined, "0.8");
         fadeOutInput.preferredSize = [55, 20]; fadeOutInput.characters = 5;
-        l2.add("statictext", undefined, " s (秒)").preferredSize = [50, 18];
+        l2.add("statictext", undefined, "s (秒)").preferredSize = [48, 18];;
 
         // ==============================
         //  高级效果
         // ==============================
         var fxGroup = panel.add("panel");
-        fxGroup.text = " 高级效果 ";
+        fxGroup.text = "高级效果";
         fxGroup.orientation = "column";
-        fxGroup.alignChildren = ["fill", "top"];
+        fxGroup.alignChildren = ["left", "top"];
+        fxGroup.preferredSize = [540, -1];
         fxGroup.spacing = 2;
         fxGroup.margins = [4, 10, 4, 4];
 
         var f1 = fxGroup.add("group");
-        f1.orientation = "row"; f1.alignment = ["fill", "center"];
+        f1.orientation = "row";
         var twinkleCheck = f1.add("checkbox", undefined, "闪烁效果");
         twinkleCheck.value = true;
         f1.add("statictext", undefined, "闪烁幅度:");
         var twinkleStrSlider = f1.add("slider", undefined, 50, 0, 100);
-        twinkleStrSlider.preferredSize = [50, 20];
+        
         var twinkleStrValue = f1.add("edittext", undefined, "50");
         twinkleStrValue.preferredSize = [55, 20]; twinkleStrValue.characters = 5;
-        f1.add("statictext", undefined, "%").preferredSize = [20, 18];
-        f1.add("statictext", undefined, " 速度:").preferredSize = [50, 18];
+        f1.add("statictext", undefined, " %").preferredSize = [18, 18];
+        f1.add("statictext", undefined, "速度:");
         var twinkleSpdSlider = f1.add("slider", undefined, 2, 0.1, 10);
-        twinkleSpdSlider.preferredSize = [50, 20];
+        
         var twinkleSpdValue = f1.add("edittext", undefined, "2");
         twinkleSpdValue.preferredSize = [55, 20]; twinkleSpdValue.characters = 5;
         twinkleStrSlider.onChanging = function() { twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString(); };
@@ -1401,14 +1416,14 @@
         };
 
         var f2 = fxGroup.add("group");
-        f2.orientation = "row"; f2.alignment = ["fill", "center"];
+        f2.orientation = "row";
         f2.add("statictext", undefined, "随机种子:");
         var seedSlider = f2.add("slider", undefined, 42, 0, 9999);
-        seedSlider.preferredSize = [100, 20];
+        
         var seedValue = f2.add("edittext", undefined, "42");
         seedValue.preferredSize = [55, 20]; seedValue.characters = 5;
         var randomSeedBtn = f2.add("button", undefined, "随机");
-        randomSeedBtn.preferredSize = [45, 22];
+        
         seedSlider.onChanging = function() { seedValue.text = Math.round(seedSlider.value).toString(); };
         seedValue.onChange = function() {
             var v = parseInt(seedValue.text);
@@ -1422,33 +1437,48 @@
 
         // 环绕开关
         var f3 = fxGroup.add("group");
-        f3.orientation = "row"; f3.alignment = ["fill", "center"];
+        f3.orientation = "row";
         var wrapCheck = f3.add("checkbox", undefined, "环绕 (Wrap) - 出屏幕边界后绕回对面");
         wrapCheck.value = true;
 
         // 模糊强度
         var fBlur = fxGroup.add("group");
-        fBlur.orientation = "row"; fBlur.alignment = ["fill", "center"];
+        fBlur.orientation = "row";
         fBlur.add("statictext", undefined, "模糊:");
         var blurSlider = fBlur.add("slider", undefined, 0, 0, 100);
-        blurSlider.preferredSize = [60, 20];
+        
         var blurValue = fBlur.add("edittext", undefined, "0");
         blurValue.preferredSize = [55, 20]; blurValue.characters = 5;
-        fBlur.add("statictext", undefined, "px").preferredSize = [20, 18];
+        fBlur.add("statictext", undefined, "px").preferredSize = [18, 18];;
         blurSlider.onChanging = function() { blurValue.text = Math.round(blurSlider.value).toString(); };
         blurValue.onChange = function() {
             var v = parseInt(blurValue.text);
             if (!isNaN(v)) blurSlider.value = Math.max(0, Math.min(100, v));
         };
 
+        // 模糊比例
+        var fBlurPct = fxGroup.add("group");
+        fBlurPct.orientation = "row";
+        fBlurPct.add("statictext", undefined, "模糊比例:");
+        var blurPctSlider = fBlurPct.add("slider", undefined, 100, 0, 100);
+        
+        var blurPctValue = fBlurPct.add("edittext", undefined, "100");
+        blurPctValue.preferredSize = [55, 20]; blurPctValue.characters = 5;
+        fBlurPct.add("statictext", undefined, " %").preferredSize = [18, 18];
+        blurPctSlider.onChanging = function() { blurPctValue.text = Math.round(blurPctSlider.value).toString(); };
+        blurPctValue.onChange = function() {
+            var v = parseInt(blurPctValue.text);
+            if (!isNaN(v)) blurPctSlider.value = Math.max(0, Math.min(100, v));
+        };
+
         var f4 = fxGroup.add("group");
-        f4.orientation = "row"; f4.alignment = ["fill", "center"];
+        f4.orientation = "row";
         f4.add("statictext", undefined, "随机偏移:");
         var emitOffSlider = f4.add("slider", undefined, 0, 0, 6);
-        emitOffSlider.preferredSize = [80, 20];
+        
         var emitOffValue = f4.add("edittext", undefined, "0");
         emitOffValue.preferredSize = [55, 20]; emitOffValue.characters = 5;
-        f4.add("statictext", undefined, "s (秒)").preferredSize = [45, 18];
+        f4.add("statictext", undefined, "s (秒)").preferredSize = [48, 18];;
         emitOffSlider.onChanging = function() { emitOffValue.text = (Math.round(emitOffSlider.value * 10) / 10).toString(); };
         emitOffValue.onChange = function() {
             var v = parseFloat(emitOffValue.text);
@@ -1459,42 +1489,38 @@
         //  操作按钮
         // ==============================
         var btnPanel = panel.add("panel");
-        btnPanel.text = " 操作 ";
+        btnPanel.text = "操作";
         btnPanel.orientation = "column";
-        btnPanel.alignChildren = ["fill", "top"];
+        btnPanel.alignChildren = ["left", "top"];
+        btnPanel.preferredSize = [540, -1];
         btnPanel.spacing = 6;
         btnPanel.margins = [4, 10, 4, 6];
 
-        var generateBtn = btnPanel.add("button", undefined, "▶  生成粒子");
-        generateBtn.preferredSize = [-1, 32];
-
-        var secBtnRow = btnPanel.add("group");
-        secBtnRow.orientation = "row"; secBtnRow.alignment = ["fill", "top"];
-        secBtnRow.alignChildren = ["fill", "center"]; secBtnRow.spacing = 4;
-        var clearAllBtn = secBtnRow.add("button", undefined, "清除全部");
-        clearAllBtn.preferredSize = [-1, 26];
-
-        var ioBtnRow = btnPanel.add("group");
-        ioBtnRow.orientation = "row"; ioBtnRow.alignment = ["fill", "top"];
-        ioBtnRow.alignChildren = ["fill", "center"]; ioBtnRow.spacing = 4;
-        var saveBtn = ioBtnRow.add("button", undefined, "保存预设");
-        saveBtn.preferredSize = [-1, 26];
-        var loadBtn = ioBtnRow.add("button", undefined, "加载预设");
-        loadBtn.preferredSize = [-1, 26];
-
+        var btnRow = btnPanel.add("group");
+        btnRow.orientation = "row"; btnRow.spacing = 4;
+        var generateBtn = btnRow.add("button", undefined, "▶  生成粒子");
+        generateBtn.preferredSize = [140, 26];
+        
+        var clearAllBtn = btnRow.add("button", undefined, "清除全部");
+        
+        var saveBtn = btnRow.add("button", undefined, "保存预设");
+        
+        var loadBtn = btnRow.add("button", undefined, "加载预设");
+        
         // ==============================
         //  快捷预设
         // ==============================
         var presetPanel = panel.add("panel");
-        presetPanel.text = " 快捷预设 ";
+        presetPanel.text = "快捷预设";
         presetPanel.orientation = "column";
-        presetPanel.alignChildren = ["fill", "top"];
+        presetPanel.alignChildren = ["left", "top"];
+        presetPanel.preferredSize = [540, -1];
         presetPanel.spacing = 2;
         presetPanel.margins = [4, 10, 4, 6];
 
         var presetRow1 = presetPanel.add("group");
-        presetRow1.orientation = "row"; presetRow1.alignment = ["fill", "center"];
-        presetRow1.alignChildren = ["fill", "center"]; presetRow1.spacing = 2;
+        presetRow1.orientation = "row";
+        presetRow1; presetRow1.spacing = 2;
         var preset1Btn = presetRow1.add("button", undefined, "经典星空");
         preset1Btn.preferredSize = [-1, 20];
         var preset2Btn = presetRow1.add("button", undefined, "彩色星云");
@@ -1506,10 +1532,10 @@
 
         // 预设粒子数量（独立滑块）
         var presetCountRow = presetPanel.add("group");
-        presetCountRow.orientation = "row"; presetCountRow.alignment = ["fill", "center"];
+        presetCountRow.orientation = "row";
         presetCountRow.add("statictext", undefined, "预设数量:");
         var presetCountSlider = presetCountRow.add("slider", undefined, 200, 10, 2000);
-        presetCountSlider.preferredSize = [100, 20];
+        
         var presetCountValue = presetCountRow.add("edittext", undefined, "200");
         presetCountValue.preferredSize = [55, 20]; presetCountValue.characters = 5;
         presetCountSlider.onChanging = function() {
@@ -1524,9 +1550,10 @@
         //  槽位预设 (存储于 app.settings)
         // ==============================
         var slotPanel = panel.add("panel");
-        slotPanel.text = " 槽位预设 (Slot Preset) ";
+        slotPanel.text = "槽位预设 (Slot Preset)";
         slotPanel.orientation = "column";
-        slotPanel.alignChildren = ["fill", "top"];
+        slotPanel.alignChildren = ["left", "top"];
+        slotPanel.preferredSize = [540, -1];
         slotPanel.spacing = 2;
         slotPanel.margins = [4, 10, 4, 4];
 
@@ -1537,12 +1564,12 @@
 
         // 存储预设行
         var slotSaveRow = slotPanel.add("group");
-        slotSaveRow.orientation = "row"; slotSaveRow.alignment = ["fill", "center"]; slotSaveRow.spacing = 2;
+        slotSaveRow.orientation = "row"; slotSaveRow.spacing = 2;
         slotSaveRow.add("statictext", undefined, "存储预设:");
         for (var si = 0; si < 4; si++) {
             (function(idx) {
                 var btn = slotSaveRow.add("button", undefined, String(idx + 1));
-                btn.preferredSize = [36, 22];
+                
                 btn.onClick = function() { saveSlot(idx); updateSlotBtnState(); };
                 slotSaveBtns.push(btn);
             })(si);
@@ -1550,12 +1577,12 @@
 
         // 使用预设行
         var slotLoadRow = slotPanel.add("group");
-        slotLoadRow.orientation = "row"; slotLoadRow.alignment = ["fill", "center"]; slotLoadRow.spacing = 2;
+        slotLoadRow.orientation = "row"; slotLoadRow.spacing = 2;
         slotLoadRow.add("statictext", undefined, "使用预设:");
         for (var si = 0; si < 4; si++) {
             (function(idx) {
                 var btn = slotLoadRow.add("button", undefined, String(idx + 1));
-                btn.preferredSize = [36, 22];
+                
                 btn.onClick = function() { loadSlot(idx); };
                 slotLoadBtns.push(btn);
             })(si);
@@ -1575,7 +1602,7 @@
 
         // 清空所有槽位
         var slotBtnRow = slotPanel.add("group");
-        slotBtnRow.orientation = "row"; slotBtnRow.alignment = ["fill", "center"]; slotBtnRow.spacing = 4;
+        slotBtnRow.orientation = "row"; slotBtnRow.spacing = 4;
         var clearAllSlotBtn = slotBtnRow.add("button", undefined, "清空所有槽位");
         clearAllSlotBtn.preferredSize = [-1, 22];
 
@@ -1596,7 +1623,7 @@
                 var jsonStr = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[idx]);
                 if (!jsonStr || jsonStr === "") {
                     alert("槽位 " + (idx + 1) + " 为空。");
-                    return;
+                    
                 }
                 var p = JSON.parse(jsonStr);
                 // slot 预设的键名来自 getUIParams()，与 applyPresetToUI（中文键名）完全不同
@@ -1630,10 +1657,11 @@
                 if (p.emitDen !== undefined)    emitDenSlider.value = p.emitDen;
                 if (p.targetMode !== undefined) targetModeDrop.selection = p.targetMode;
                 if (p.attractDur !== undefined) { attractDurSlider.value = p.attractDur; attractDurInput.text = (Math.round(p.attractDur * 10) / 10).toString(); }
-                if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction) + "%"; }
+                if (p.attraction !== undefined) { attractSlider.value = p.attraction; attractValue.text = Math.round(p.attraction).toString(); }
                 if (p.wrapAround !== undefined) wrapCheck.value = p.wrapAround;
                 if (p.emitOff !== undefined) { emitOffSlider.value = p.emitOff; emitOffValue.text = Math.round(p.emitOff * 10) / 10 + "s"; }
                 if (p.blur !== undefined) { blurSlider.value = p.blur; blurValue.text = Math.round(p.blur).toString(); }
+                if (p.blurRatio !== undefined) { blurPctSlider.value = p.blurRatio; blurPctValue.text = Math.round(p.blurRatio).toString(); }
                 try { updateColorSwatch(); } catch (e) {}
                 setStatus("已加载槽位 " + (idx + 1));
             } catch (e) {
@@ -1652,10 +1680,8 @@
             setStatus("所有槽位已清空");
         };
 
-        // 绑定存储/使用按钮
-        for (var si = 0; si < 4; si++) {
-        // 初始化槽位按钮状态
-        updateSlotBtnState();
+        // 初始化槽位按钮状态（默认全部启用，点击时再检查是否为空）
+        for (var si = 0; si < 4; si++) slotLoadBtns[si].enabled = true;
 
         function getUIParams() {
             return {
@@ -1683,8 +1709,9 @@
                 twinkleStrength: twinkleCheck.value ? Math.round(twinkleStrSlider.value) : 0,
                 twinkleSpeed: twinkleCheck.value ? twinkleSpdSlider.value : 0,
                 blur: Math.round(blurSlider.value),
+                blurRatio: Math.round(blurPctSlider.value),
                 seed: Math.round(seedSlider.value),
-                // v2.0 发射模式 + 目标选取
+                // v3.1.2 发射模式 + 目标选取
                 emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
                 emitLayer: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitLayerDrop.selection && emitLayerDrop.selection.text.indexOf("(") !== 0) ? emitLayerDrop.selection.text : "",
                 emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection && emitMaskDrop.selection.text.indexOf("(") !== 0) ? emitMaskDrop.selection.text : "",
@@ -1718,7 +1745,7 @@
             updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
             updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
             updateControllerSlider(controller, "随机种子", params.seed);
-            // v2.0 目标吸引 + 密度
+            // v3.1.2 目标吸引 + 密度
             updateControllerSlider(controller, "吸引力", params.attraction);
             updateControllerSlider(controller, "吸引时长", params.attractDur);
             updateControllerSlider(controller, "发射密度", params.emitDen);
@@ -1728,6 +1755,7 @@
             updateControllerSlider(controller, "缩放最大变化(%)", params.sizeVarMax);
             updateControllerSlider(controller, "发射随机偏移", params.emitOff);
             updateControllerSlider(controller, "模糊强度", params.blur);
+            updateControllerSlider(controller, "模糊比例(%)", params.blurRatio);
         }
 
             function applyPresetToUI(preset) {
@@ -1761,12 +1789,14 @@
             twinkleStrValue.text = Math.round(twinkleStrSlider.value).toString();
             blurSlider.value = preset["模糊强度"] || 0;
             blurValue.text = Math.round(blurSlider.value).toString();
+            blurPctSlider.value = preset["模糊比例%"] || 100;
+            blurPctValue.text = Math.round(blurPctSlider.value).toString();
             twinkleCheck.value = (preset["闪烁强度"] || 0) > 0;
             twinkleSpdSlider.value = preset["闪烁速度"] || 2;
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
-            // v2.0 发射模式 + 目标选取（预设恢复）
+            // v3.1.2 发射模式 + 目标选取（预设恢复）
             emitModeDrop.selection = preset["发射模式"] || 0;
             if (emitModeDrop.selection && emitModeDrop.selection.index === 1) {
                 // 遮罩模式 — 需用户点击刷新
@@ -1775,7 +1805,7 @@
             emitDenVal.text = Math.round(emitDenSlider.value) + "%";
             targetModeDrop.selection = preset["目标模式"] || 0;
             attractSlider.value = preset["吸引力"] || 0;
-            attractValue.text = Math.round(attractSlider.value) + "%";
+            attractValue.text = Math.round(attractSlider.value).toString();
             attractDurSlider.value = preset["吸引时长"] || 2;
             attractDurInput.text = Math.round(attractDurSlider.value * 10) / 10;
             try { updateColorSwatch(); } catch (e) {}
@@ -1831,15 +1861,13 @@
             // HSL 色彩选取器
             var dlg = new Window("dialog", "颜色选取器 (HSL)");
             dlg.orientation = "column";
-            dlg.alignChildren = ["fill", "top"];
+
             dlg.spacing = 6;
             dlg.margins = [12, 12, 12, 12];
 
             // 预览区
             var previewPane = dlg.add("panel");
-            previewPane.preferredSize = [200, 40];
-            previewPane.alignment = ["center", "top"];
-
+            
             function updatePreview(h, s, l) {
                 try {
                     var rgb = hslToRgbInt(Math.round(h), Math.round(s), Math.round(l));
@@ -1857,13 +1885,13 @@
 
             // H
             var hGrp = dlg.add("group");
-            hGrp.orientation = "row"; hGrp.alignment = ["fill", "center"];
-            hGrp.add("statictext", undefined, "H");
+            hGrp.orientation = "row";
+            hGrp.add("statictext", undefined, "H").preferredSize = [16, 18];;
             var hSl = hGrp.add("slider", undefined, curH, 0, 360);
-            hSl.preferredSize = [120, 20];
+            
             var hIn = hGrp.add("edittext", undefined, curH.toString());
             hIn.preferredSize = [55, 20]; hIn.characters = 5;
-            hGrp.add("statictext", undefined, "° (角度)").preferredSize = [50, 18];
+            hGrp.add("statictext", undefined, "° (角度)").preferredSize = [56, 18];;
             hSl.onChanging = function() {
                 hIn.text = Math.round(hSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1875,14 +1903,14 @@
 
             // S
             var sGrp = dlg.add("group");
-            sGrp.orientation = "row"; sGrp.alignment = ["fill", "center"];
-            sGrp.add("statictext", undefined, "S");
+            sGrp.orientation = "row";
+            sGrp.add("statictext", undefined, "S").preferredSize = [16, 18];;
             var sSl = sGrp.add("slider", undefined, curS, 0, 100);
-            sSl.preferredSize = [120, 20];
+            
             var sIn = sGrp.add("edittext", undefined, curS.toString());
             sIn.preferredSize = [55, 20]; sIn.characters = 5;
-            sGrp.add("statictext", undefined, "%").preferredSize = [20, 18];
-            sIn.preferredSize = [45, 20]; sIn.characters = 3;
+            sGrp.add("statictext", undefined, " %").preferredSize = [18, 18];
+            sIn.preferredSize = [55, 20]; sIn.characters = 3;
             sSl.onChanging = function() {
                 sIn.text = Math.round(sSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1894,13 +1922,13 @@
 
             // L
             var lGrp = dlg.add("group");
-            lGrp.orientation = "row"; lGrp.alignment = ["fill", "center"];
-            lGrp.add("statictext", undefined, "L");
+            lGrp.orientation = "row";
+            lGrp.add("statictext", undefined, "L").preferredSize = [16, 18];;
             var lSl = lGrp.add("slider", undefined, curL, 0, 100);
-            lSl.preferredSize = [120, 20];
+            
             var lIn = lGrp.add("edittext", undefined, curL.toString());
-            lIn.preferredSize = [45, 20]; lIn.characters = 3;
-            lGrp.add("statictext", undefined, "%").preferredSize = [20, 18];
+            lIn.preferredSize = [55, 20]; lIn.characters = 3;
+            lGrp.add("statictext", undefined, " %").preferredSize = [18, 18];
             lSl.onChanging = function() {
                 lIn.text = Math.round(lSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1912,11 +1940,11 @@
 
             // 按钮
             var btnGrp = dlg.add("group");
-            btnGrp.orientation = "row"; btnGrp.alignment = ["center", "bottom"];
+            btnGrp.orientation = "row";
             btnGrp.spacing = 10;
 
             var okBtn = btnGrp.add("button", undefined, "确定 (OK)");
-            okBtn.preferredSize = [80, 26];
+            
             okBtn.onClick = function() {
                 // HSL 直接设置（不需要转换）
                 hueSliderRef.value = Math.round(hSl.value / 3.6);
@@ -1932,7 +1960,7 @@
             };
 
             var cancelBtn = btnGrp.add("button", undefined, "取消 (Cancel)");
-            cancelBtn.preferredSize = [80, 26];
+            
             cancelBtn.onClick = function() { dlg.close(); };
 
             dlg.show();
@@ -1984,7 +2012,7 @@
                     var defaultName = "starfield_presets.json";
                     var saveFile = File.saveDialog("保存预设文件到", "JSON:*.json", defaultName);
                     if (!saveFile) return;
-                    var fileData = { version: "2.0", slots: {} };
+                    var fileData = { version: "3.1.2", slots: {} };
                     for (var si = 0; si < 4; si++) {
                         try {
                             var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
@@ -2041,7 +2069,7 @@
         // ==============================
         //  布局
         // ==============================
-        panel.layout.layout(true);
+        panel.layout.layout();
         panel.layout.resize();
         panel.onResizing = panel.onResize = function() { this.layout.resize(); };
 
@@ -2053,7 +2081,7 @@
 
     // ==================== 启动 ====================
 
-    debugLog("=== 星空粒子生成器 v1.7 启动 ===");
+    debugLog("=== 星空粒子生成器 v3.1.2 启动 ===");
     debugLog("AE version: " + app.version);
 
     try {
@@ -2066,4 +2094,3 @@
         debugLog("CRITICAL: " + e.toString());
         showErrorReport("插件初始化失败", "buildUI() 报错", e, e.line);
     }
-}
