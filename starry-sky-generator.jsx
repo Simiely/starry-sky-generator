@@ -1071,7 +1071,11 @@
         
         var emitMaskDrop = ee2.add("dropdownlist", undefined, ["-"]);
         emitMaskDrop.preferredSize = [-1, 20];
-        var emitRefreshBtn = ee2.add("button", undefined, "R");
+        var emitRefreshBtn = ee2.add("button", undefined, "刷新");
+        
+        // 选中状态文字（内嵌在行内，与 ee2 同显同隐）
+        var emitStatusInRow = ee2.add("statictext", undefined, "");
+        emitStatusInRow.preferredSize = [160, 18];
         
         ee2.visible = false;
         // 初始颜色灰化
@@ -1083,7 +1087,8 @@
             ee2.visible = isMask;
             ee3.visible = isMask;
             if (isMask) { autoRefreshEmit(); }
-            updateEmitStatus();
+            emitGroup.layout.layout(true);
+            updateEmitStatusRow();
         };
 
         // 刷新逻辑（按钮和自动刷新共用，静默）
@@ -1103,7 +1108,7 @@
             var c = app.project.activeItem;
             if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
             autoRefreshEmit();
-            updateEmitStatus();
+            updateEmitStatusRow();
         };
 
         // 选图层时更新遮罩
@@ -1111,35 +1116,26 @@
             try {
                 var c = app.project.activeItem;
                 if (c && c instanceof CompItem) populateEmitMask(c);
-                updateEmitStatus();
+                updateEmitStatusRow();
             } catch (e) {}
         };
 
-        // 状态提示
-        var emitStatus = emitGroup.add("statictext", undefined, "");
-        emitStatus.preferredSize = [-1, 16];
+        // 遮罩下拉选中时更新状态
+        emitMaskDrop.onChange = function() { updateEmitStatusRow(); };
 
-        function updateEmitStatus() {
+        // 更新行内状态文字
+        function updateEmitStatusRow() {
             try {
                 if (!emitModeDrop.selection || emitModeDrop.selection.index !== 1) {
-                    emitStatus.text = "";
-                    
+                    emitStatusInRow.text = "";
+                    return;
                 }
                 var lName = emitLayerDrop.selection ? emitLayerDrop.selection.text : "-";
                 var mName = emitMaskDrop.selection ? emitMaskDrop.selection.text : "-";
-                emitStatus.text = "\u2713 \u5df2\u9009: " + lName + " \u2192 " + mName;
+                emitStatusInRow.text = "\u2713 " + lName + " \u2192 " + mName;
             } catch (e) {}
         }
 
-        // 遮罩下拉选中也更新状态
-        emitMaskDrop.onChange = function() { updateEmitStatus(); };
-
-        // 刷新时也更新状态
-        var origRefresh = emitRefreshBtn.onClick;
-        emitRefreshBtn.onClick = function() {
-            origRefresh();
-            updateEmitStatus();
-        };
 
         // 密度行
         var ee3 = emitGroup.add("group");
@@ -1161,11 +1157,12 @@
                 var maskParade = layer.property("ADBE Mask Parade");
                 if (!maskParade || maskParade.numProperties === 0) {
                     emitMaskDrop.add("item", "(无遮罩)");
-                    
+                    return;
                 }
                 for (var mi = 1; mi <= maskParade.numProperties; mi++) {
                     emitMaskDrop.add("item", maskParade.property(mi).name);
                 }
+                emitMaskDrop.selection = 0;
             } catch (e) {
                 emitMaskDrop.add("item", "(错误)");
             }
