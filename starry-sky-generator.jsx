@@ -569,13 +569,14 @@
             'var baseOpacity = 100;',
             'if (cycleTime < fadeIn) {',
             '    baseOpacity = linear(cycleTime, 0, fadeIn, 0, 100);',
-            '} else if (cycleTime > lifeDuration - fadeOut) {',
-            '    baseOpacity = linear(cycleTime, lifeDuration - fadeOut, lifeDuration, 100, 0);',
+            '}',
+            'if (cycleTime > lifeDuration - fadeOut) {',
+            '    baseOpacity = linear(cycleTime, lifeDuration - fadeOut, lifeDuration, baseOpacity, 0);',
             '}',
             '',
             'var twinkle = 0;',
             'if (twinkleStrength > 0) {',
-            '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength * 2;',
+            '    twinkle = noise(time * twinkleSpeed + index) * twinkleStrength;',
             '}',
             'Math.max(0, Math.min(100, baseOpacity + twinkle));'
         ].join('\n');
@@ -603,7 +604,7 @@
             'var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;',
             'var timeShift = emitOff > 0 ? random(0, emitOff) : 0;',
             'var tLocal = (time + timeShift) % dur;',
-            'var pct = initPct / 100 + (finlPct - initPct) / 100 * (tLocal / dur);',
+            'var pct = Math.max(initPct, 1) / 100 + (finlPct - initPct) / 100 * (tLocal / dur);',
             '[s * pct, s * pct];'
         ].join('\n');
     }
@@ -1137,7 +1138,8 @@
         ee3.add("statictext", undefined, "密度 (百分比):");
         var emitDenSlider = ee3.add("slider", undefined, 100, 0, 100);
         
-        var emitDenVal = ee3.add("statictext", undefined, "100%").preferredSize = [40, 18];
+        var emitDenVal = ee3.add("statictext", undefined, "100%");
+        emitDenVal.preferredSize = [40, 18];
         
         emitDenSlider.onChanging = function() { emitDenVal.text = Math.round(emitDenSlider.value) + "%"; };
         ee3.visible = false;
@@ -1313,7 +1315,7 @@
         attractValue.onChange = function() { var v = parseFloat(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(50, v)); };
 
         m5.add("statictext", undefined, "时长:");
-        var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
+        var attractDurSlider = m5.add("slider", undefined, 2, 0, 30);
         
         var attractDurInput = m5.add("edittext", undefined, "2");
         attractDurInput.preferredSize = [55, 20]; attractDurInput.characters = 5;
@@ -1325,7 +1327,7 @@
             var v = parseFloat(attractDurInput.text);
             if (!isNaN(v)) {
                 v = Math.max(0.1, v);
-                attractDurSlider.value = Math.min(999, v);
+                attractDurSlider.value = Math.min(30, v);
                 attractDurInput.text = Math.round(v * 10) / 10;
             }
         };
@@ -2002,9 +2004,10 @@
             var preset = builtInPresets[presetName];
             if (!preset) return;
             applyPresetToUI(preset);
+            var params = getUIParams();  // 用英文key重读，避免中文key不匹配
             var controller = getOrCreateController(comp);
-            applyUIToController(controller, preset);
-            generateParticles(comp, controller, Math.round(presetCountSlider.value), preset["形状"] || 0, preset["发射模式"] || 0, preset["发射图层"] || "", preset["发射遮罩"] || "", preset["目标模式"] || 0, preset["目标图层"] || "", preset["目标遮罩"] || "", preset["发射密度"] || 100, preset["吸引时长"] || 2, true);
+            applyUIToController(controller, params);
+            generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur, params.wrapAround);
             setStatus(presetName + " 已应用");
         }
 
