@@ -413,7 +413,8 @@
         p.push('');
 
         // ===== 发射区域 =====
-        if (emitMode === 1 && emitLayer && emitMask) {
+        var hasEmitMask = (emitMode === 1 && emitLayer && emitMask);
+        if (hasEmitMask) {
             p.push('var eLayer = thisComp.layer("' + emitLayer + '");');
             p.push('var ePts = [];');
             p.push('if (eLayer) {');
@@ -425,45 +426,49 @@
             p.push('}');
             p.push('var eL = 99999, eR = -99999, eT = 99999, eB = -99999;');
             p.push('for (var vi = 0; vi < ePts.length; vi++) {');
-            p.push('    var vx = ePts[vi][0], vy = ePts[vi][1];');
-            p.push('    if (vx < eL) eL = vx; if (vx > eR) eR = vx;');
-            p.push('    if (vy < eT) eT = vy; if (vy > eB) eB = vy;');
+            p.push('    if (ePts[vi][0] < eL) eL = ePts[vi][0]; if (ePts[vi][0] > eR) eR = ePts[vi][0];');
+            p.push('    if (ePts[vi][1] < eT) eT = ePts[vi][1]; if (ePts[vi][1] > eB) eB = ePts[vi][1];');
             p.push('}');
             p.push('if (ePts.length === 0) { eL = 0; eR = thisComp.width; eT = 0; eB = thisComp.height; }');
-            p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
-            p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
-            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
-            p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
-            p.push('var eCycle = Math.floor(time / eLifeDur);');
-            p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
-            // 点阵内发射：在边界框内随机取点，判断是否在多边形内部（无 function 关键字，内联实现）
-            // 最多尝试 10 次，避免表达式超时
-            p.push('var foundPt = false;');
-            p.push('for (var att = 0; att < 10; att++) {');
-            p.push('    var tryX = random(eL, eR);');
-            p.push('    var tryY = random(eT, eB);');
-            p.push('    var inside = false;');
-            p.push('    for (var i = 0, j = ePts.length - 1; i < ePts.length; j = i++) {');
-            p.push('        var xi = ePts[i][0], yi = ePts[i][1];');
-            p.push('        var xj = ePts[j][0], yj = ePts[j][1];');
-            p.push('        if ((yi > tryY) != (yj > tryY) && tryX < (xj - xi) * (tryY - yi) / (yj - yi) + xi) inside = !inside;');
+        }
+
+        // 共用的生命周期计算
+        p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
+        p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
+        p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
+        p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
+        p.push('var eCycle = Math.floor(time / eLifeDur);');
+        p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
+
+        if (hasEmitMask) {
+            // 密度控制：随机决定粒子从遮罩内或全合成发射
+            p.push('var emitDensity = ' + fx('发射密度', 100) + ';');
+            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 6000, true);');
+            p.push('if (random(0, 100) < emitDensity) {');
+            // 遮罩内发射（ray casting + 最多10次尝试）
+            p.push('    var foundPt = false;');
+            p.push('    for (var att = 0; att < 10; att++) {');
+            p.push('        var tryX = random(eL, eR);');
+            p.push('        var tryY = random(eT, eB);');
+            p.push('        var inside = false;');
+            p.push('        for (var i = 0, j = ePts.length - 1; i < ePts.length; j = i++) {');
+            p.push('            if ((ePts[i][1] > tryY) != (ePts[j][1] > tryY) && tryX < (ePts[j][0] - ePts[i][0]) * (tryY - ePts[i][1]) / (ePts[j][1] - ePts[i][1]) + ePts[i][0]) inside = !inside;');
+            p.push('        }');
+            p.push('        if (inside) {');
+            p.push('            var rPt = eLayer.toComp([tryX, tryY]);');
+            p.push('            var startX = rPt[0]; var startY = rPt[1]; foundPt = true; break;');
+            p.push('        }');
             p.push('    }');
-            p.push('    if (inside) {');
-            p.push('        var rPt = eLayer.toComp([tryX, tryY]);');
-            p.push('        var startX = rPt[0]; var startY = rPt[1]; foundPt = true; break;');
+            p.push('    if (!foundPt) {');
+            p.push('        var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
+            p.push('        var startX = rPt[0]; var startY = rPt[1];');
             p.push('    }');
-            p.push('}');
-            p.push('if (!foundPt) {');
-            p.push('    var rPt = eLayer.toComp([random(eL, eR), random(eT, eB)]);');
-            p.push('    var startX = rPt[0]; var startY = rPt[1];');
+            p.push('} else {');
+            // 全合成发射
+            p.push('    var startX = random(0, thisComp.width);');
+            p.push('    var startY = random(0, thisComp.height);');
             p.push('}');
         } else {
-            p.push('var eLifeMin = ' + fx('最小生命周期(秒)', 2) + ';');
-            p.push('var eLifeMax = ' + fx('最大生命周期(秒)', 6) + ';');
-            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 1000, true);');
-            p.push('var eLifeDur = random(eLifeMin, eLifeMax);');
-            p.push('var eCycle = Math.floor(time / eLifeDur);');
-            p.push('seedRandom(index + eCycle + ' + fx('随机种子', 42) + ' + 2000, true);');
             p.push('var startX = random(0, thisComp.width);');
             p.push('var startY = random(0, thisComp.height);');
         }
