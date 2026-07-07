@@ -1224,35 +1224,27 @@
         var targetModeDrop = m4.add("dropdownlist", undefined, ["无", "Null点", "遮罩范围"]);
         targetModeDrop.selection = 0;
         
+        // 目标选取行（合并图层+遮罩，一个刷新按钮，跟发射区一致）
         var m4b = motionGroup.add("group");
         m4b.orientation = "row";
         var tgtLabel = m4b.add("statictext", undefined, "图层:");
         
         var targetLayerDrop = m4b.add("dropdownlist", undefined, ["(刷新)"]);
         targetLayerDrop.preferredSize = [-1, 20];
+        var tgtMaskLabel = m4b.add("statictext", undefined, "遮罩:");
+        
+        var targetMaskDrop = m4b.add("dropdownlist", undefined, ["-"]);
+        targetMaskDrop.preferredSize = [-1, 20];
         var tgtRefreshBtn = m4b.add("button", undefined, "刷新");
         
-        // 目标选中状态（内嵌在图层行，m4b 可见时也可见）
         var tgtStatusInRow = m4b.add("statictext", undefined, "");
         tgtStatusInRow.preferredSize = [160, 18];
         
         m4b.visible = false;
 
-        // 目标遮罩选取行
-        var m4c = motionGroup.add("group");
-        m4c.orientation = "row";
-        var tgtMaskLabel = m4c.add("statictext", undefined, "遮罩:");
-        
-        var targetMaskDrop = m4c.add("dropdownlist", undefined, ["-"]);
-        targetMaskDrop.preferredSize = [-1, 20];
-        var tgtMaskRefreshBtn = m4c.add("button", undefined, "刷新");
-        
-        m4c.visible = false;
-
         targetModeDrop.onChange = function() {
             var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
             m4b.visible = (idx === 1 || idx === 2);
-            m4c.visible = (idx === 2);
             if (idx >= 1) { autoRefreshTarget(); }
             updateTargetStatus();
         };
@@ -1272,13 +1264,6 @@
             if (!c || !(c instanceof CompItem)) { alert("无活动合成"); return; }
             autoRefreshTarget();
             updateTargetStatus();
-        };
-
-        tgtMaskRefreshBtn.onClick = function() {
-            try {
-                var c = app.project.activeItem;
-                if (c && c instanceof CompItem) populateTargetMask(c);
-            } catch (e) {}
         };
 
         targetLayerDrop.onChange = function() {
@@ -1305,7 +1290,7 @@
             } catch (e) { targetMaskDrop.add("item", "(错误)"); }
         }
 
-        // 目标状态文字（内嵌在图层行，无独立层）
+        // 目标状态文字（内嵌在图层行）
         function updateTargetStatus() {
             try {
                 var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
