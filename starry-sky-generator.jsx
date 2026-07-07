@@ -1,8 +1,8 @@
 /* ============================================================
-   星空粒子生成器  v3.1.2
+   星空粒子生成器  v3.2
    Starry Sky Particle Generator for Adobe After Effects 2026
 
-   基于 v3.1.2 Mask Feather + ScriptUI 优化
+   基于 v3.2 Mask Feather + ScriptUI 优化
    - 圆形/多边形: Solid + Mask（Mask Feather 模糊）
    - 正方形: Solid（Gaussian Blur 效果）
 
@@ -348,7 +348,7 @@
         // === 模糊控制 ===
         addSliderToLayer(nullLayer, "模糊强度", 0, "粒子边缘柔化程度（像素）");
         addSliderToLayer(nullLayer, "模糊比例(%)", 100, "被模糊的粒子比例（0=全清晰 100=全模糊）");
-        // === v3.1.2 发射区域 + 目标吸引 ===
+        // === v3.2 发射区域 + 目标吸引 ===
         addSliderToLayer(nullLayer, "吸引力", 0, "粒子被目标吸引的强度（0=无吸引，值越大越强）");
         addSliderToLayer(nullLayer, "吸引时长", 2, "粒子开始被吸引的延迟时间（秒）");
         addSliderToLayer(nullLayer, "发射密度", 100, "粒子在遮罩范围内的分布密度");
@@ -866,7 +866,7 @@
         debugLog("buildUI() starting...");
 
         var panel = (thisObj instanceof Panel) ? thisObj :
-            new Window("palette", "星空粒子生成器 v3.1.2", undefined, {resizeable: true});
+            new Window("palette", "星空粒子生成器 v3.2", undefined, {resizeable: true});
 
         panel.orientation = "column";
         panel.alignChildren = ["fill", "top"];
@@ -877,7 +877,7 @@
         // ===== 标题 =====
         var titleRow = panel.add("group");
         titleRow.orientation = "row";
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v3.1.2  |  AE " + app.version);
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v3.2  |  AE " + app.version);
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -1699,7 +1699,7 @@
                 blur: Math.round(blurSlider.value),
                 blurRatio: Math.round(blurPctSlider.value),
                 seed: Math.round(seedSlider.value),
-                // v3.1.2 发射模式 + 目标选取
+                // v3.2 发射模式 + 目标选取
                 emitMode: emitModeDrop.selection ? emitModeDrop.selection.index : 0,
                 emitLayer: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitLayerDrop.selection && emitLayerDrop.selection.text.indexOf("(") !== 0) ? emitLayerDrop.selection.text : "",
                 emitMask: (emitModeDrop.selection && emitModeDrop.selection.index === 1 && emitMaskDrop.selection && emitMaskDrop.selection.text.indexOf("(") !== 0) ? emitMaskDrop.selection.text : "",
@@ -1733,7 +1733,7 @@
             updateControllerSlider(controller, "闪烁强度", params.twinkleStrength);
             updateControllerSlider(controller, "闪烁速度", params.twinkleSpeed);
             updateControllerSlider(controller, "随机种子", params.seed);
-            // v3.1.2 目标吸引 + 密度
+            // v3.2 目标吸引 + 密度
             updateControllerSlider(controller, "吸引力", params.attraction);
             updateControllerSlider(controller, "吸引时长", params.attractDur);
             updateControllerSlider(controller, "发射密度", params.emitDen);
@@ -1784,7 +1784,7 @@
             twinkleSpdValue.text = Math.round(twinkleSpdSlider.value * 10) / 10;
             seedSlider.value = preset["随机种子"] || 42;
             seedValue.text = Math.round(seedSlider.value).toString();
-            // v3.1.2 发射模式 + 目标选取（预设恢复）
+            // v3.2 发射模式 + 目标选取（预设恢复）
             emitModeDrop.selection = preset["发射模式"] || 0;
             if (emitModeDrop.selection && emitModeDrop.selection.index === 1) {
                 // 遮罩模式 — 需用户点击刷新
@@ -2036,7 +2036,7 @@
                     var defaultName = "starfield_presets.json";
                     var saveFile = File.saveDialog("保存预设文件到", "JSON:*.json", defaultName);
                     if (!saveFile) return;
-                    var fileData = { version: "3.1.2", slots: {} };
+                    var fileData = { version: "3.2", slots: {} };
                     for (var si = 0; si < 4; si++) {
                         try {
                             var js = app.settings.getSetting("StarrySkyGenerator", SLOT_KEYS[si]);
@@ -2105,7 +2105,7 @@
 
     // ==================== 启动 ====================
 
-    debugLog("=== 星空粒子生成器 v3.1.2 启动 ===");
+    debugLog("=== 星空粒子生成器 v3.2 启动 ===");
     debugLog("AE version: " + app.version);
 
     try {
