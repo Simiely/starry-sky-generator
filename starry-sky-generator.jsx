@@ -1303,14 +1303,14 @@
         var m5 = motionGroup.add("group");
         m5.orientation = "row";
         m5.add("statictext", undefined, "吸引力:");
-        var attractSlider = m5.add("slider", undefined, 0, 0, 20);
+        var attractSlider = m5.add("slider", undefined, 0, 0, 50);
         
         var attractValue = m5.add("edittext", undefined, "0");
         attractValue.preferredSize = [55, 20]; attractValue.characters = 5;
         m5.add("statictext", undefined, "x (强度)").preferredSize = [60, 18];
 
         attractSlider.onChanging = function() { attractValue.text = (Math.round(attractSlider.value * 10) / 10).toString(); };
-        attractValue.onChange = function() { var v = parseFloat(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(20, v)); };
+        attractValue.onChange = function() { var v = parseFloat(attractValue.text); if (!isNaN(v)) attractSlider.value = Math.max(0, Math.min(50, v)); };
 
         m5.add("statictext", undefined, "时长:");
         var attractDurSlider = m5.add("slider", undefined, 2, -1, 999);
