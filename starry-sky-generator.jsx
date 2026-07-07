@@ -746,7 +746,6 @@
 
             updateControllerSlider(controller, "粒子数量", actualCount);
             debugLog("  DONE: " + actualCount + " particles");
-            alert("已生成 " + actualCount + " 个星空粒子！\n\n可通过「Ctrl_Starfield」层调整所有参数。");
 
         } catch (e) {
             debugLog("  FAILED: " + e.toString());
@@ -1943,7 +1942,44 @@
             setStatus("正在生成...");
             var comp = ensureComp();
             var params = getUIParams();
-            debugLog("Generate: count=" + params.count + " shape=" + params.shape + " targetMode=" + params.targetMode + " targetLayer=" + params.targetLayer + " targetMask=" + params.targetMask + " attraction=" + params.attraction + " attractDur=" + params.attractDur);
+
+            // 弹出诊断信息（可选中复制）
+            var diag = [];
+            diag.push("=== 生成参数 ===");
+            diag.push("粒子数: " + params.count + "  形状: " + params.shape);
+            diag.push("");
+            diag.push("--- 目标吸引 ---");
+            diag.push("targetMode: " + params.targetMode + " (0=无 1=Null 2=遮罩)");
+            diag.push("targetLayer: \"" + params.targetLayer + "\"");
+            diag.push("targetMask: \"" + (params.targetMask || "") + "\"");
+            diag.push("attraction: " + params.attraction + " / 10");
+            diag.push("attractDur: " + params.attractDur + " s");
+            diag.push("");
+            diag.push("点击确定继续生成，取消将中止。");
+            diag.push("");
+
+            var dlg = new Window("dialog", "生成确认");
+            dlg.orientation = "column";
+            dlg.alignChildren = ["left", "top"];
+            dlg.spacing = 4;
+            dlg.margins = [10, 10, 10, 10];
+            dlg.add("statictext", undefined, "以下参数将用于生成，请确认：");
+            var info = dlg.add("edittext", undefined, diag.join("\n"),
+                { multiline: true, readonly: true, scrolling: false });
+            info.preferredSize = [360, 160];
+            var bGrp = dlg.add("group");
+            bGrp.orientation = "row";
+            bGrp.alignChildren = ["center", "center"];
+            bGrp.spacing = 10;
+            var goBtn = bGrp.add("button", undefined, "确定生成");
+            var cancelBtn = bGrp.add("button", undefined, "取消");
+            var confirmed = false;
+            goBtn.onClick = function() { confirmed = true; dlg.close(); };
+            cancelBtn.onClick = function() { dlg.close(); };
+            dlg.show();
+
+            if (!confirmed) { setStatus("已取消"); return; }
+
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
             generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur, params.wrapAround);
