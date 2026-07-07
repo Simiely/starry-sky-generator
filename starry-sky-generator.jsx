@@ -1832,13 +1832,15 @@
             // HSL 色彩选取器
             var dlg = new Window("dialog", "颜色选取器 (HSL)");
             dlg.orientation = "column";
-
+            dlg.alignChildren = ["left", "top"];
             dlg.spacing = 6;
             dlg.margins = [12, 12, 12, 12];
 
             // 预览区
             var previewPane = dlg.add("panel");
-            
+            previewPane.preferredSize = [300, 50];
+            previewPane.alignment = ["fill", "top"];
+
             function updatePreview(h, s, l) {
                 try {
                     var rgb = hslToRgbInt(Math.round(h), Math.round(s), Math.round(l));
@@ -1854,15 +1856,16 @@
             }
             updatePreview(curH, curS, curL);
 
-            // H
+            // H 色相
             var hGrp = dlg.add("group");
             hGrp.orientation = "row";
-            hGrp.add("statictext", undefined, "H").preferredSize = [16, 18];;
+            hGrp.alignChildren = ["left", "center"];
+            hGrp.spacing = 4;
+            hGrp.add("statictext", undefined, "H").preferredSize = [16, 18];
             var hSl = hGrp.add("slider", undefined, curH, 0, 360);
-            
             var hIn = hGrp.add("edittext", undefined, curH.toString());
             hIn.preferredSize = [55, 20]; hIn.characters = 5;
-            hGrp.add("statictext", undefined, "° (角度)").preferredSize = [56, 18];;
+            hGrp.add("statictext", undefined, "deg (角度)").preferredSize = [68, 18];
             hSl.onChanging = function() {
                 hIn.text = Math.round(hSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1872,16 +1875,16 @@
                 if (!isNaN(vv)) hSl.value = Math.max(0, Math.min(360, vv));
             };
 
-            // S
+            // S 饱和度
             var sGrp = dlg.add("group");
             sGrp.orientation = "row";
-            sGrp.add("statictext", undefined, "S").preferredSize = [16, 18];;
+            sGrp.alignChildren = ["left", "center"];
+            sGrp.spacing = 4;
+            sGrp.add("statictext", undefined, "S").preferredSize = [16, 18];
             var sSl = sGrp.add("slider", undefined, curS, 0, 100);
-            
             var sIn = sGrp.add("edittext", undefined, curS.toString());
             sIn.preferredSize = [55, 20]; sIn.characters = 5;
-            sGrp.add("statictext", undefined, " %").preferredSize = [18, 18];
-            sIn.preferredSize = [55, 20]; sIn.characters = 3;
+            sGrp.add("statictext", undefined, "%").preferredSize = [22, 18];
             sSl.onChanging = function() {
                 sIn.text = Math.round(sSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1891,15 +1894,16 @@
                 if (!isNaN(vv)) sSl.value = Math.max(0, Math.min(100, vv));
             };
 
-            // L
+            // L 亮度
             var lGrp = dlg.add("group");
             lGrp.orientation = "row";
-            lGrp.add("statictext", undefined, "L").preferredSize = [16, 18];;
+            lGrp.alignChildren = ["left", "center"];
+            lGrp.spacing = 4;
+            lGrp.add("statictext", undefined, "L").preferredSize = [16, 18];
             var lSl = lGrp.add("slider", undefined, curL, 0, 100);
-            
             var lIn = lGrp.add("edittext", undefined, curL.toString());
-            lIn.preferredSize = [55, 20]; lIn.characters = 3;
-            lGrp.add("statictext", undefined, " %").preferredSize = [18, 18];
+            lIn.preferredSize = [55, 20]; lIn.characters = 5;
+            lGrp.add("statictext", undefined, "%").preferredSize = [22, 18];
             lSl.onChanging = function() {
                 lIn.text = Math.round(lSl.value).toString();
                 updatePreview(hSl.value, sSl.value, lSl.value);
@@ -1909,29 +1913,23 @@
                 if (!isNaN(vv)) lSl.value = Math.max(0, Math.min(100, vv));
             };
 
-            // 按钮
+            // 操作按钮
             var btnGrp = dlg.add("group");
             btnGrp.orientation = "row";
+            btnGrp.alignChildren = ["center", "center"];
             btnGrp.spacing = 10;
-
             var okBtn = btnGrp.add("button", undefined, "确定 (OK)");
-            
             okBtn.onClick = function() {
-                // HSL 直接设置（不需要转换）
                 hueSliderRef.value = Math.round(hSl.value / 3.6);
                 satSliderRef.value = sSl.value;
                 lightSliderRef.value = lSl.value;
-                // 更新显示文本
                 hueValue.text = Math.round(hSl.value / 3.6).toString();
                 satValRef.text = Math.round(sSl.value).toString();
                 lightValRef.text = Math.round(lSl.value).toString();
-                // 更新颜色方块
                 try { updateSwatchFn(); } catch (e) {}
                 dlg.close();
             };
-
             var cancelBtn = btnGrp.add("button", undefined, "取消 (Cancel)");
-            
             cancelBtn.onClick = function() { dlg.close(); };
 
             dlg.show();
