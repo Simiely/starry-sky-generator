@@ -528,8 +528,8 @@
         p.push('    var toY = tY - (startY + vy * tLocal);');
         p.push('    var toDist = Math.sqrt(toX*toX + toY*toY);');
         p.push('    if (toDist > 1) {');
-        p.push('        vx = vx + (toX / toDist) * attraction * 50;');
-        p.push('        vy = vy + (toY / toDist) * attraction * 50;');
+        p.push('        vx = vx + (toX / toDist) * attraction * speed;');
+        p.push('        vy = vy + (toY / toDist) * attraction * speed;');
         p.push('    }');
         p.push('}');
         p.push('var rawX = startX + vx * tLocal;');
