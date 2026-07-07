@@ -475,48 +475,36 @@
         p.push('var speedMin = ' + fx('最小速度', 30) + ';');
         p.push('var speedMax = ' + fx('最大速度', 100) + ';');
 
-        // ===== 目标吸引 =====
-        if (targetMode === 1 && targetLayer) {
-            p.push('');
-            p.push('var tPos = thisComp.layer("' + targetLayer + '").transform.position;');
-            p.push('var tX = tPos[0], tY = tPos[1];');
-            p.push('var attraction = ' + fx('吸引力', 0) + ';');
-        } else if (targetMode === 2 && targetLayer && targetMask) {
-            p.push('');
-            p.push('var tLayer = thisComp.layer("' + targetLayer + '");');
-            p.push('var tPts = [];');
-            p.push('if (tLayer) {');
-            p.push('    var tMask = tLayer.mask("' + targetMask + '");');
-            p.push('    if (tMask) {');
-            p.push('        var tPath = tMask.maskPath;');
-            p.push('        if (tPath) { tPts = tPath.points(); }');
-            p.push('    }');
-            p.push('}');
-            p.push('var tL = 99999, tR = -99999, tT = 99999, tB = -99999;');
-            p.push('for (var tvi = 0; tvi < tPts.length; tvi++) {');
-            p.push('    var tvx = tPts[tvi][0], tvy = tPts[tvi][1];');
-            p.push('    if (tvx < tL) tL = tvx; if (tvx > tR) tR = tvx;');
-            p.push('    if (tvy < tT) tT = tvy; if (tvy > tB) tB = tvy;');
-            p.push('}');
-            p.push('if (tPts.length === 0) { tL = 0; tR = 100; tT = 0; tB = 100; }');
-            p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
-            p.push('var tPt = tPts.length > 0 ? tLayer.toComp([random(tL, tR), random(tT, tB)]) : [random(tL, tR), random(tT, tB)];');
-            p.push('var tX = tPt[0];');
-            p.push('var tY = tPt[1];');
-            p.push('var attraction = ' + fx('吸引力', 0) + ';');
-        } else {
-            p.push('');
-            p.push('var tX = thisComp.width / 2, tY = thisComp.height / 2;');
-            p.push('var attraction = 0;');
-        }
-
-        // ===== 运动：方向融合吸引 =====
+        // ===== 目标吸引（简化版：直接读取位置，线性插值） =====
         p.push('');
+        p.push('var tX = 0, tY = 0, attraction = 0;');
+        if (targetMode === 1 && targetLayer) {
+            p.push('try { var tp = thisComp.layer("' + targetLayer + '").transform.position; tX = tp[0]; tY = tp[1]; } catch(e) {}');
+            p.push('attraction = ' + fx('吸引力', 0) + ';');
+        } else if (targetMode === 2 && targetLayer && targetMask) {
+            p.push('try {');
+            p.push('    var tLyr = thisComp.layer("' + targetLayer + '");');
+            p.push('    var tMask = tLyr.mask("' + targetMask + '");');
+            p.push('    if (tMask && tMask.maskPath) {');
+            p.push('        var tPts = tMask.maskPath.points();');
+            p.push('        var tl = 99999, tr = -99999, tt = 99999, tb = -99999;');
+            p.push('        for (var ti = 0; ti < tPts.length; ti++) {');
+            p.push('            if (tPts[ti][0] < tl) tl = tPts[ti][0]; if (tPts[ti][0] > tr) tr = tPts[ti][0];');
+            p.push('            if (tPts[ti][1] < tt) tt = tPts[ti][1]; if (tPts[ti][1] > tb) tb = tPts[ti][1];');
+            p.push('        }');
+            p.push('        seedRandom(index + ' + fx('随机种子', 42) + ' + 5000, true);');
+            p.push('        var tp = tLyr.toComp([random(tl, tr), random(tt, tb)]);');
+            p.push('        tX = tp[0]; tY = tp[1];');
+            p.push('    }');
+            p.push('} catch(e) {}');
+            p.push('attraction = ' + fx('吸引力', 0) + ';');
+        }
+        p.push('');
+
+        // ===== 运动：线性拉取吸引 =====
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ', true);');
         p.push('var angle = degreesToRadians(dirBase - dirSpread/2 + random(0, dirSpread));');
         p.push('var speed = random(speedMin, speedMax);');
-
-        // 计算当前应处位置（不受吸引影响，用于计算朝向目标的距离）
         p.push('var emitOff = ctrl.effect("发射随机偏移") ? ctrl.effect("发射随机偏移")(1) : 0;');
         p.push('seedRandom(index + ' + fx('随机种子', 42) + ' + 8000, true);');
         p.push('var timeShift = emitOff > 0 ? random(0, emitOff) : 0;');
@@ -524,29 +512,18 @@
         p.push('var tLocal = adjTime % eLifeDur;');
         p.push('var attractDur = ' + fx('吸引时长', 2) + ';');
 
-        // 方向融合：attraction 0→原方向，10→指向目标
-        p.push('var vx = Math.cos(angle) * speed;');
-        p.push('var vy = Math.sin(angle) * speed;');
-        p.push('if (tLocal < attractDur && attraction > 0.01) {');
-        p.push('    var curX = startX + Math.cos(angle) * speed * tLocal;');
-        p.push('    var curY = startY + Math.sin(angle) * speed * tLocal;');
-        p.push('    var toX = tX - curX;');
-        p.push('    var toY = tY - curY;');
-        p.push('    var toDist = Math.sqrt(toX*toX + toY*toY);');
-        p.push('    if (toDist > 1) {');
-        p.push('        var attract = Math.min(attraction / 10, 1);');
-        p.push('        var dx = Math.cos(angle);');
-        p.push('        var dy = Math.sin(angle);');
-        p.push('        var blX = dx * (1 - attract) + (toX / toDist) * attract;');
-        p.push('        var blY = dy * (1 - attract) + (toY / toDist) * attract;');
-        p.push('        var blLen = Math.sqrt(blX*blX + blY*blY);');
-        p.push('        if (blLen > 0.001) { blX /= blLen; blY /= blLen; }');
-        p.push('        vx = blX * speed;');
-        p.push('        vy = blY * speed;');
-        p.push('    }');
+        // 基础漂移位置（不受吸引）
+        p.push('var driftX = startX + Math.cos(angle) * speed * tLocal;');
+        p.push('var driftY = startY + Math.sin(angle) * speed * tLocal;');
+
+        // 极简吸引：直接把漂移位置拽向目标
+        p.push('if (attraction > 0 && tLocal < attractDur) {');
+        p.push('    var pull = attraction * (tLocal / attractDur); // 吸引力 × 时间进度');
+        p.push('    driftX = driftX + (tX - driftX) * pull;');
+        p.push('    driftY = driftY + (tY - driftY) * pull;');
         p.push('}');
-        p.push('var rawX = startX + vx * tLocal;');
-        p.push('var rawY = startY + vy * tLocal;');
+        p.push('var rawX = driftX;');
+        p.push('var rawY = driftY;');
         if (wrapAround) {
             p.push('var wrapX = rawX % thisComp.width;');
             p.push('var wrapY = rawY % thisComp.height;');
@@ -1968,7 +1945,7 @@
             setStatus("正在生成...");
             var comp = ensureComp();
             var params = getUIParams();
-            debugLog("Generate: count=" + params.count + " shape=" + params.shape);
+            debugLog("Generate: count=" + params.count + " shape=" + params.shape + " targetMode=" + params.targetMode + " targetLayer=" + params.targetLayer + " targetMask=" + params.targetMask + " attraction=" + params.attraction + " attractDur=" + params.attractDur);
             var controller = getOrCreateController(comp);
             applyUIToController(controller, params);
             generateParticles(comp, controller, params.count, params.shape, params.emitMode, params.emitLayer, params.emitMask, params.targetMode, params.targetLayer, params.targetMask || "", params.emitDen, params.attractDur, params.wrapAround);
