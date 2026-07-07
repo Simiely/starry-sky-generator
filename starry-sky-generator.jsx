@@ -874,7 +874,7 @@
         // ===== 标题 =====
         var titleRow = panel.add("group");
         titleRow.orientation = "row";
-        titleRow.add("statictext", undefined, "★  星空粒子生成器  v3.1.2");
+        titleRow.add("statictext", undefined, "★  星空粒子生成器  v3.1.2  |  AE " + app.version);
 
         var line1 = panel.add("panel");
         line1.preferredSize = [-1, 2];
@@ -883,12 +883,9 @@
         var statusRow = panel.add("group");
         statusRow.orientation = "row";
         statusRow.add("statictext", undefined, "状态: ");
-        var statusText = statusRow.add("edittext", undefined, "就绪");
-        
-        statusText.active = false;
+        var statusText = statusRow.add("statictext", undefined, "就绪");
+        statusText.preferredSize = [300, 18];
         function setStatus(msg) { statusText.text = msg; }
-
-        statusRow.add("statictext", undefined, "AE " + app.version);
 
         var line2 = panel.add("panel");
         line2.preferredSize = [-1, 2];
