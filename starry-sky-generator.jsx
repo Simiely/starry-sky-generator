@@ -1230,7 +1230,11 @@
         
         var targetLayerDrop = m4b.add("dropdownlist", undefined, ["(刷新)"]);
         targetLayerDrop.preferredSize = [-1, 20];
-        var tgtRefreshBtn = m4b.add("button", undefined, "R");
+        var tgtRefreshBtn = m4b.add("button", undefined, "刷新");
+        
+        // 目标选中状态（内嵌在图层行，m4b 可见时也可见）
+        var tgtStatusInRow = m4b.add("statictext", undefined, "");
+        tgtStatusInRow.preferredSize = [160, 18];
         
         m4b.visible = false;
 
@@ -1241,7 +1245,7 @@
         
         var targetMaskDrop = m4c.add("dropdownlist", undefined, ["-"]);
         targetMaskDrop.preferredSize = [-1, 20];
-        var tgtMaskRefreshBtn = m4c.add("button", undefined, "R");
+        var tgtMaskRefreshBtn = m4c.add("button", undefined, "刷新");
         
         m4c.visible = false;
 
@@ -1297,15 +1301,15 @@
                 for (var mi = 1; mi <= mp.numProperties; mi++) {
                     targetMaskDrop.add("item", mp.property(mi).name);
                 }
+                targetMaskDrop.selection = 0;
             } catch (e) { targetMaskDrop.add("item", "(错误)"); }
         }
 
-        var tgtStatus = motionGroup.add("statictext", undefined, "");
-        tgtStatus.preferredSize = [-1, 16];
+        // 目标状态文字（内嵌在图层行，无独立层）
         function updateTargetStatus() {
             try {
                 var idx = targetModeDrop.selection ? targetModeDrop.selection.index : 0;
-                if (idx === 0) { tgtStatus.text = ""; return; }
+                if (idx === 0) { tgtStatusInRow.text = ""; return; }
                 var n = "-";
                 if (idx === 1) n = targetLayerDrop.selection ? targetLayerDrop.selection.text : "-";
                 else if (idx === 2) {
@@ -1313,7 +1317,7 @@
                     var m = targetMaskDrop.selection ? targetMaskDrop.selection.text : "-";
                     n = l + " \u2192 " + m;
                 }
-                tgtStatus.text = "\u2713 \u76ee\u6807: " + n;
+                tgtStatusInRow.text = "\u2713 \u76ee\u6807: " + n;
             } catch (e) {}
         }
 
