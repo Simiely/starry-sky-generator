@@ -124,15 +124,11 @@ C:\Program Files\Adobe\Adobe After Effects 2026\Support Files\Scripts\ScriptUI P
 starry-sky-generator.jsx   — 主插件脚本
 README.md                   — 使用说明（本文档）
 DEVELOPMENT.md              — 开发者笔记 & 关键问题记录
+CHANGELOG.md                — 版本历史
 ```
 
----
+## 文档
 
-## 版本历史
-
-| 版本 | 内容 |
-|------|------|
-| **v3.2** | 吸引逻辑重写（速度加法）、密度参数实现、多处硬伤修复、UI 布局统一 |
-| **v3.1.2** | Mask 羽化模糊 + 启动性能优化 + 中文注释 + UI 布局自适应 |
-| **v2.0** | 发射区域 + 目标吸引 + 形状选择 |
-| **v1.4** | Solid 粒子方案（初版） |
+- **更新日志**：见 [CHANGELOG.md](./CHANGELOG.md)（v1.4 → v3.2 版本历史）
+- **开发文档**：见 [DEVELOPMENT.md](./DEVELOPMENT.md)（13 条关键问题 + 参数速查 + AE 快速参考）
+- **项目规则（AI 用）**：见 [AGENTS.md](./AGENTS.md)（技术栈、关键坑、约定）
