@@ -1,3 +1,12 @@
+> [!IMPORTANT]
+> ## 📦 本仓库已归档 —— 请到统一仓库下载
+> 本插件已并入 **[Simiely/ae-tools](https://github.com/Simiely/ae-tools)**（`panels/starry-sky-generator/`），
+> 后续更新与问题修复都在 ae-tools 统一维护，**本仓库只读、不再更新**。
+>
+> 最新版源码：https://github.com/Simiely/ae-tools/tree/main/panels/starry-sky-generator
+
+---
+
 # 星空粒子生成器 v3.2
 
 **Starry Sky Particle Generator** — Adobe After Effects 2026 ScriptUI Panel
